@@ -114,20 +114,13 @@ final class AppState: ObservableObject {
     private func configurePeerSession() {
         hasConfigured = true
         peerSession.configure(deviceName: deviceName, role: deviceRole)
-        switch deviceRole {
-        case .sender:
-            peerSession.startBrowsing()
-        case .receiver:
-            peerSession.startAdvertising()
-        case .unset:
-            break
-        }
+        peerSession.startAllServices()
     }
 
     private func startConnectionMonitor() {
         stopConnectionMonitor()
         let timer = DispatchSource.makeTimerSource(queue: monitorQueue)
-        timer.schedule(deadline: .now() + 10.0, repeating: 10.0, leeway: .seconds(2))
+        timer.schedule(deadline: .now() + 15.0, repeating: 15.0, leeway: .seconds(3))
         timer.setEventHandler { [weak self] in
             DispatchQueue.main.async {
                 guard let self else { return }

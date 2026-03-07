@@ -21,7 +21,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     func applicationWillTerminate(_ application: UIApplication) {
         stopKeepAlive()
-        PeerSession.shared.stopAll()
+        let session = PeerSession.shared
+        let name = cachedDeviceName
+        let msg = CommandMessage(type: .disconnect, payload: .disconnect, senderID: name)
+        session.send(command: msg)
+        Thread.sleep(forTimeInterval: 0.5)
+        session.stopAll()
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
@@ -51,7 +56,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         backgroundTaskID = .invalid
 
         backgroundTaskID = app.beginBackgroundTask(withName: "DeskBoardPeerAlive") { [weak self] in
-            self?.endBackgroundTask()
+            self?.renewBackgroundTask()
         }
 
         if oldID != .invalid {
@@ -69,7 +74,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         stopKeepAlive()
         let deviceName = cachedDeviceName
         let timer = DispatchSource.makeTimerSource(queue: keepAliveQueue)
-        timer.schedule(deadline: .now() + 5.0, repeating: 5.0, leeway: .seconds(1))
+        timer.schedule(deadline: .now() + 3.0, repeating: 8.0, leeway: .seconds(1))
         timer.setEventHandler {
             DispatchQueue.main.async {
                 let session = PeerSession.shared
