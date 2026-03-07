@@ -74,6 +74,32 @@ targets:
         UIBackgroundModes:
           - fetch
         ITSAppUsesNonExemptEncryption: false
+    preBuildScripts:
+      - script: |
+          ICON="${SRCROOT}/Resources/Assets.xcassets/AppIcon.appiconset/icon.png"
+          DEST="${SRCROOT}/Resources/Assets.xcassets/AppIcon.appiconset"
+          if [ ! -f "$ICON" ] && [ -f "${SRCROOT}/DeckBoard/Assets.xcassets/AppIcon.appiconset/icon.png" ]; then
+            ICON="${SRCROOT}/DeckBoard/Assets.xcassets/AppIcon.appiconset/icon.png"
+            cp "$ICON" "$DEST/icon.png"
+          fi
+          if [ -f "$ICON" ]; then
+            sips -z 40 40 "$ICON" --out "$DEST/icon-20@2x.png" 2>/dev/null || true
+            sips -z 60 60 "$ICON" --out "$DEST/icon-20@3x.png" 2>/dev/null || true
+            sips -z 58 58 "$ICON" --out "$DEST/icon-29@2x.png" 2>/dev/null || true
+            sips -z 87 87 "$ICON" --out "$DEST/icon-29@3x.png" 2>/dev/null || true
+            sips -z 80 80 "$ICON" --out "$DEST/icon-40@2x.png" 2>/dev/null || true
+            sips -z 120 120 "$ICON" --out "$DEST/icon-40@3x.png" 2>/dev/null || true
+            sips -z 120 120 "$ICON" --out "$DEST/icon-60@2x.png" 2>/dev/null || true
+            sips -z 180 180 "$ICON" --out "$DEST/icon-60@3x.png" 2>/dev/null || true
+            sips -z 20 20 "$ICON" --out "$DEST/icon-20.png" 2>/dev/null || true
+            sips -z 29 29 "$ICON" --out "$DEST/icon-29.png" 2>/dev/null || true
+            sips -z 40 40 "$ICON" --out "$DEST/icon-40.png" 2>/dev/null || true
+            sips -z 76 76 "$ICON" --out "$DEST/icon-76.png" 2>/dev/null || true
+            sips -z 152 152 "$ICON" --out "$DEST/icon-76@2x.png" 2>/dev/null || true
+            sips -z 167 167 "$ICON" --out "$DEST/icon-83.5@2x.png" 2>/dev/null || true
+            sips -z 1024 1024 "$ICON" --out "$DEST/icon-1024.png" 2>/dev/null || true
+          fi
+        name: Generate App Icons
     resources:
       - Resources/Assets.xcassets
       - Resources/Localizable.strings
@@ -90,6 +116,7 @@ targets:
         PROVISIONING_PROFILE_SPECIFIER: $(PROVISIONING_PROFILE_SPECIFIER)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
       configs:
         Debug:
           CODE_SIGN_IDENTITY: iPhone Developer
