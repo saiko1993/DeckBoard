@@ -88,12 +88,12 @@
 		7244CC224F5F7498F3ECDA3B /* Dashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dashboard.swift; sourceTree = "<group>"; };
 		7415216579D6CEC7EF75BEA5 /* DeskBoard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DeskBoard.entitlements; sourceTree = "<group>"; };
 		77A412A68245E7F85ADE8521 /* TrustedDeviceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedDeviceStore.swift; sourceTree = "<group>"; };
-		7DDE37A3ED9F252925EB6F1C /* DeskBoard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DeskBoard.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7DDE37A3ED9F252925EB6F1C /* DeckBoard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DeckBoard.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9149626A40E31DF2B2F345F0 /* ButtonEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonEditorViewModel.swift; sourceTree = "<group>"; };
 		94D7E2B840013457FAB2E09E /* QRCodePairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodePairingView.swift; sourceTree = "<group>"; };
 		9595241FE04D89F1E24839D2 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = Localizable.strings; sourceTree = "<group>"; };
 		96A40C63BDB64C8F9B5CCA68 /* ButtonEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonEditorView.swift; sourceTree = "<group>"; };
-		99FE3394F3E6CD048695C004 /* DeskBoardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DeskBoardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		99FE3394F3E6CD048695C004 /* DeckBoard.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DeckBoard.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F03BD25416330C6A4DEB3FB /* RoleSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoleSelectionView.swift; sourceTree = "<group>"; };
 		A9332B9E05BD76D35DAE8E27 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1096FCF665585B71F237889 /* NearbyDevicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyDevicesView.swift; sourceTree = "<group>"; };
@@ -591,11 +591,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DeskBoard.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DeskBoard";
-			};
-			name = Debug;
-		};
-		8E912CB112CF4852129396DF /* Debug */ = {
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DeckBoard.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DeckBoard";
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -752,7 +748,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DeskBoard.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DeskBoard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DeckBoard.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DeckBoard";
 			};
 			name = Release;
 		};
