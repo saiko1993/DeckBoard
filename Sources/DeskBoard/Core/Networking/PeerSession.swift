@@ -5,14 +5,14 @@ import KeychainAccess
 
 private let peerLog = Logger(subsystem: "com.deskboard", category: "PeerSession")
 
-struct IncomingPairingRequest: @unchecked Sendable, Identifiable {
+nonisolated struct IncomingPairingRequest: @unchecked Sendable, Identifiable {
     var id: String { peerID.displayName }
     let peerID: MCPeerID
     let deviceName: String
     let deviceRole: String
 }
 
-struct DiscoveredPeer: Identifiable, @unchecked Sendable {
+nonisolated struct DiscoveredPeer: Identifiable, @unchecked Sendable {
     let id: String
     let peerID: MCPeerID
     let role: DeviceRole?
@@ -22,7 +22,7 @@ struct DiscoveredPeer: Identifiable, @unchecked Sendable {
     var displayName: String { peerID.displayName }
 }
 
-final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
+nonisolated final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     static let shared = PeerSession()
 

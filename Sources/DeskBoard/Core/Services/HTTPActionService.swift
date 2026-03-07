@@ -1,6 +1,6 @@
 import Foundation
 
-final class HTTPActionService: @unchecked Sendable {
+nonisolated final class HTTPActionService: @unchecked Sendable {
 
     static let shared = HTTPActionService()
 
@@ -13,7 +13,7 @@ final class HTTPActionService: @unchecked Sendable {
         session = URLSession(configuration: config)
     }
 
-    struct Response: Sendable {
+    nonisolated struct Response: Sendable {
         let statusCode: Int
         let body: Data
         let headers: [String: String]
@@ -74,7 +74,7 @@ final class HTTPActionService: @unchecked Sendable {
     }
 }
 
-enum ActionError: Error, LocalizedError, Sendable {
+nonisolated enum ActionError: Error, LocalizedError, Sendable {
     case invalidURL(String)
     case invalidResponse
     case httpError(statusCode: Int, body: String?)

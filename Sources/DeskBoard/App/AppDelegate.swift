@@ -3,7 +3,7 @@ import BackgroundTasks
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
-    private static let bgTaskID = "com.deskboard.connection-keepalive"
+    nonisolated private static let bgTaskID = "com.deskboard.connection-keepalive"
 
     func application(
         _ application: UIApplication,
@@ -15,23 +15,23 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         }
         BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.bgTaskID, using: .main) { task in
             guard let bgTask = task as? BGAppRefreshTask else { return }
-            self.handleBGRefresh(bgTask)
+            Self.performBGRefresh(bgTask)
         }
         return true
     }
 
-    func applicationWillTerminate(_ application: UIApplication) {
+    nonisolated func applicationWillTerminate(_ application: UIApplication) {
         let session = PeerSession.shared
-        let name = AppConfiguration.deviceName
+        let name = "DeskBoard"
         let msg = CommandMessage(type: .disconnect, payload: .disconnect, senderID: name)
         session.send(command: msg)
         Thread.sleep(forTimeInterval: 0.3)
         session.stopAll()
     }
 
-    func applicationDidEnterBackground(_ application: UIApplication) {
+    nonisolated func applicationDidEnterBackground(_ application: UIApplication) {
         PeerSession.shared.enterBackground()
-        scheduleBGRefresh()
+        Self.scheduleBGRefresh()
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
@@ -39,13 +39,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         UIApplication.shared.isIdleTimerDisabled = true
     }
 
-    private func scheduleBGRefresh() {
-        let request = BGAppRefreshTaskRequest(identifier: Self.bgTaskID)
+    nonisolated private static func scheduleBGRefresh() {
+        let request = BGAppRefreshTaskRequest(identifier: bgTaskID)
         request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
         try? BGTaskScheduler.shared.submit(request)
     }
 
-    private func handleBGRefresh(_ task: BGAppRefreshTask) {
+    nonisolated private static func performBGRefresh(_ task: BGAppRefreshTask) {
         task.expirationHandler = {
             task.setTaskCompleted(success: false)
         }

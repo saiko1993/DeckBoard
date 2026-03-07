@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - DeviceRole
 
-enum DeviceRole: String, Codable, CaseIterable, Sendable {
+nonisolated enum DeviceRole: String, Codable, CaseIterable, Sendable {
     case sender   = "sender"
     case receiver = "receiver"
     case unset    = "unset"
@@ -37,7 +37,7 @@ enum DeviceRole: String, Codable, CaseIterable, Sendable {
 
 // MARK: - PairedDevice
 
-struct PairedDevice: Codable, Identifiable, Hashable, Sendable {
+nonisolated struct PairedDevice: Codable, Identifiable, Hashable, Sendable {
     var id: String
     var displayName: String
     var role: DeviceRole
@@ -67,7 +67,7 @@ struct PairedDevice: Codable, Identifiable, Hashable, Sendable {
 
 // MARK: - ConnectionState
 
-enum ConnectionState: Equatable, Sendable {
+nonisolated enum ConnectionState: Equatable, Sendable {
     case idle
     case searching
     case found(peerName: String)

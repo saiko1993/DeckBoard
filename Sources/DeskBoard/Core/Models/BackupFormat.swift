@@ -1,6 +1,6 @@
 import Foundation
 
-struct DeckBoardBackup: Codable, Sendable {
+nonisolated struct DeckBoardBackup: Codable, Sendable {
     let version: Int
     let exportedAt: Date
     let deviceName: String
@@ -22,7 +22,7 @@ struct DeckBoardBackup: Codable, Sendable {
     }
 }
 
-struct BackupSettings: Codable, Sendable {
+nonisolated struct BackupSettings: Codable, Sendable {
     var hapticEnabled: Bool
     var silentReceiver: Bool
     var defaultColumns: Int
@@ -31,7 +31,7 @@ struct BackupSettings: Codable, Sendable {
     var retryCount: Int
 }
 
-enum BackupError: Error, LocalizedError, Sendable {
+nonisolated enum BackupError: Error, LocalizedError, Sendable {
     case invalidFormat
     case unsupportedVersion(Int)
     case corruptedData

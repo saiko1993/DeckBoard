@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - SampleData
 
-enum SampleData {
+nonisolated enum SampleData {
 
     // MARK: - Sample Dashboards
 

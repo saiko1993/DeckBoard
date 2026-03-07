@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: - Dashboard
 
-struct Dashboard: Codable, Identifiable, Hashable, Sendable {
+nonisolated struct Dashboard: Codable, Identifiable, Hashable, Sendable {
     var id: UUID
     var name: String
     var icon: String
@@ -37,7 +37,7 @@ struct Dashboard: Codable, Identifiable, Hashable, Sendable {
 
 // MARK: - DashboardPage
 
-struct DashboardPage: Codable, Identifiable, Hashable, Sendable {
+nonisolated struct DashboardPage: Codable, Identifiable, Hashable, Sendable {
     var id: UUID
     var title: String
     var buttons: [DeskButton]
@@ -58,7 +58,7 @@ struct DashboardPage: Codable, Identifiable, Hashable, Sendable {
 
 // MARK: - DeskButton
 
-struct DeskButton: Codable, Identifiable, Hashable, Sendable {
+nonisolated struct DeskButton: Codable, Identifiable, Hashable, Sendable {
     var id: UUID
     var title: String
     var subtitle: String?
