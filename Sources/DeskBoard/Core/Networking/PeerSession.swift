@@ -13,7 +13,7 @@ struct IncomingPairingRequest: @unchecked Sendable, Identifiable {
 // MARK: - DiscoveredPeer
 
 struct DiscoveredPeer: Identifiable, @unchecked Sendable {
-    let id: String              // displayName
+    let id: String
     let peerID: MCPeerID
     let role: DeviceRole?
 
@@ -22,10 +22,6 @@ struct DiscoveredPeer: Identifiable, @unchecked Sendable {
 
 // MARK: - PeerSession
 
-/// Manages MultipeerConnectivity session for local peer discovery and communication.
-///
-/// - Note: Marked `@unchecked Sendable` because MC delegate callbacks arrive on
-///   arbitrary threads; all Published mutations are dispatched to the main queue.
 final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     static let shared = PeerSession()
@@ -51,8 +47,14 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private var currentRole: DeviceRole = .unset
     private var currentDeviceName: String = ""
     private var autoReconnectEnabled: Bool = true
+
     private var reconnectTimer: Timer?
     private var heartbeatTimer: Timer?
+    private var reconnectAttempts: Int = 0
+    private let maxReconnectInterval: TimeInterval = 15.0
+    private let baseReconnectInterval: TimeInterval = 1.5
+    private var lastConnectedPeerName: String?
+    private var isSessionActive: Bool = false
 
     // MARK: - Init
 
@@ -62,22 +64,45 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     // MARK: - Configuration
 
-    /// Call once before using; sets up MC peer and session.
     func configure(deviceName: String, role: DeviceRole) {
         currentRole = role
         currentDeviceName = deviceName
         autoReconnectEnabled = true
-        let pid = MCPeerID(displayName: deviceName)
+        reconnectAttempts = 0
+        createSessionIfNeeded()
+    }
+
+    private func createSessionIfNeeded() {
+        guard session == nil || peerID?.displayName != currentDeviceName else { return }
+
+        let pid = loadOrCreatePeerID(displayName: currentDeviceName)
         peerID = pid
         let sess = MCSession(peer: pid, securityIdentity: nil, encryptionPreference: .required)
         sess.delegate = self
         session = sess
+        isSessionActive = true
+    }
+
+    private func loadOrCreatePeerID(displayName: String) -> MCPeerID {
+        let key = "com.deskboard.peerID.\(displayName)"
+        if let data = UserDefaults.standard.data(forKey: key),
+           let archived = try? NSKeyedUnarchiver.unarchivedObject(ofClass: MCPeerID.self, from: data),
+           archived.displayName == displayName {
+            return archived
+        }
+        let newPeer = MCPeerID(displayName: displayName)
+        if let data = try? NSKeyedArchiver.archivedData(withRootObject: newPeer, requiringSecureCoding: true) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+        return newPeer
     }
 
     // MARK: - Advertising (Receiver)
 
     func startAdvertising() {
+        createSessionIfNeeded()
         guard let pid = peerID else { return }
+        stopAdvertising()
         let info: [String: String] = [
             "role": currentRole.rawValue,
             "version": AppConfiguration.appVersion
@@ -86,7 +111,9 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         adv.delegate = self
         adv.startAdvertisingPeer()
         advertiser = adv
-        publishOnMain { self.connectionState = .searching }
+        if !isConnected {
+            publishOnMain { self.connectionState = .searching }
+        }
     }
 
     func stopAdvertising() {
@@ -97,12 +124,16 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     // MARK: - Browsing (Sender)
 
     func startBrowsing() {
+        createSessionIfNeeded()
         guard let pid = peerID else { return }
+        stopBrowsing()
         let brw = MCNearbyServiceBrowser(peer: pid, serviceType: serviceType)
         brw.delegate = self
         brw.startBrowsingForPeers()
         browser = brw
-        publishOnMain { self.connectionState = .searching }
+        if !isConnected {
+            publishOnMain { self.connectionState = .searching }
+        }
     }
 
     func stopBrowsing() {
@@ -112,10 +143,15 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     }
 
     func stopAll() {
-        stopTimers()
+        autoReconnectEnabled = false
+        stopReconnectTimer()
+        stopHeartbeatTimer()
         stopAdvertising()
         stopBrowsing()
         session?.disconnect()
+        session = nil
+        peerID = nil
+        isSessionActive = false
         publishOnMain {
             self.connectionState = .idle
             self.connectedPeerNames = []
@@ -126,6 +162,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     // MARK: - Connection
 
     func invite(peer: DiscoveredPeer) {
+        createSessionIfNeeded()
         guard let session else { return }
         browser?.invitePeer(peer.peerID, to: session, withContext: nil, timeout: 30)
         publishOnMain { self.connectionState = .pairing }
@@ -146,8 +183,14 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     func disconnect() {
         autoReconnectEnabled = false
-        stopTimers()
+        stopReconnectTimer()
+        stopHeartbeatTimer()
+        stopAdvertising()
+        stopBrowsing()
         session?.disconnect()
+        session = nil
+        peerID = nil
+        isSessionActive = false
         publishOnMain {
             self.connectionState = .disconnected
             self.connectedPeerNames = []
@@ -156,21 +199,36 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     func enableAutoReconnect() {
         autoReconnectEnabled = true
+        reconnectAttempts = 0
     }
 
-    private func stopTimers() {
+    var isConnected: Bool {
+        guard let session else { return false }
+        return !session.connectedPeers.isEmpty
+    }
+
+    // MARK: - Timers (Separate)
+
+    private func stopReconnectTimer() {
         reconnectTimer?.invalidate()
         reconnectTimer = nil
+    }
+
+    private func stopHeartbeatTimer() {
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil
     }
 
     private func scheduleReconnect() {
         guard autoReconnectEnabled, currentRole != .unset else { return }
-        stopTimers()
+        stopReconnectTimer()
+
+        let delay = min(baseReconnectInterval * pow(1.5, Double(reconnectAttempts)), maxReconnectInterval)
+        reconnectAttempts += 1
+
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+            self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
                 guard let self else { return }
                 self.attemptReconnect()
             }
@@ -180,28 +238,47 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private func attemptReconnect() {
         guard autoReconnectEnabled, currentRole != .unset else { return }
         guard !currentDeviceName.isEmpty else { return }
+        guard !isConnected else { return }
 
-        if session == nil || session?.connectedPeers.isEmpty == true {
-            configure(deviceName: currentDeviceName, role: currentRole)
-            switch currentRole {
-            case .sender:
-                startBrowsing()
-            case .receiver:
-                startAdvertising()
-            case .unset:
-                break
+        createSessionIfNeeded()
+
+        switch currentRole {
+        case .sender:
+            startBrowsing()
+        case .receiver:
+            startAdvertising()
+        case .unset:
+            break
+        }
+
+        scheduleReconnect()
+    }
+
+    private func startHeartbeat() {
+        stopHeartbeatTimer()
+        DispatchQueue.main.async { [weak self] in
+            self?.heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+                guard let self else { return }
+                if self.isConnected {
+                    let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: self.currentDeviceName)
+                    self.send(command: msg)
+                } else {
+                    self.stopHeartbeatTimer()
+                    self.scheduleReconnect()
+                }
             }
         }
     }
 
-    private func startHeartbeat() {
-        stopTimers()
-        DispatchQueue.main.async { [weak self] in
-            self?.heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
-                guard let self else { return }
-                let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: self.currentDeviceName)
-                self.send(command: msg)
-            }
+    // MARK: - Auto-Connect Trusted Peers
+
+    private func autoConnectIfTrusted(_ peer: DiscoveredPeer) {
+        guard currentRole == .sender else { return }
+        guard !isConnected else { return }
+
+        let trustedStore = TrustedDeviceStore.shared
+        if trustedStore.isTrusted(id: peer.id) || peer.id == lastConnectedPeerName {
+            invite(peer: peer)
         }
     }
 
@@ -213,7 +290,23 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             let data = try encoder.encode(command)
             try session.send(data, toPeers: session.connectedPeers, with: .reliable)
         } catch {
-            print("❌ PeerSession send error: \(error)")
+            print("PeerSession send error: \(error)")
+        }
+    }
+
+    // MARK: - Background Support
+
+    func enterBackground() {
+        guard isConnected else { return }
+        let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: currentDeviceName)
+        send(command: msg)
+    }
+
+    func enterForeground() {
+        guard autoReconnectEnabled, currentRole != .unset else { return }
+        if !isConnected {
+            reconnectAttempts = 0
+            attemptReconnect()
         }
     }
 
@@ -232,74 +325,97 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
 extension PeerSession: MCSessionDelegate {
 
-    func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
-        publishOnMain {
+    nonisolated func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
+        let peerName = peerID.displayName
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
             switch state {
             case .connected:
-                if !self.connectedPeerNames.contains(peerID.displayName) {
-                    self.connectedPeerNames.append(peerID.displayName)
+                if !self.connectedPeerNames.contains(peerName) {
+                    self.connectedPeerNames.append(peerName)
                 }
+                self.lastConnectedPeerName = peerName
+                self.reconnectAttempts = 0
+                self.stopReconnectTimer()
+
                 let peerRole: DeviceRole = self.currentRole == .sender ? .receiver : .sender
                 let device = PairedDevice(
-                    id: peerID.displayName,
-                    displayName: peerID.displayName,
+                    id: peerName,
+                    displayName: peerName,
                     role: peerRole
                 )
                 self.connectionState = .connected(to: device)
                 self.startHeartbeat()
+
+                TrustedDeviceStore.shared.updateLastSeen(id: peerName)
+
+                if self.currentRole == .sender {
+                    self.stopBrowsing()
+                }
+
             case .notConnected:
-                self.connectedPeerNames.removeAll { $0 == peerID.displayName }
+                self.connectedPeerNames.removeAll { $0 == peerName }
                 if self.connectedPeerNames.isEmpty {
                     self.connectionState = .disconnected
-                    self.scheduleReconnect()
+                    self.stopHeartbeatTimer()
+                    if self.autoReconnectEnabled {
+                        self.scheduleReconnect()
+                    }
                 }
+
             case .connecting:
                 self.connectionState = .pairing
+
             @unknown default:
                 break
             }
         }
     }
 
-    func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
+    nonisolated func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
         let enc = CommandEncoder()
         do {
             let message = try enc.decode(data)
-            publishOnMain { self.handleIncoming(message, from: peerID.displayName) }
+            DispatchQueue.main.async { [weak self] in
+                self?.handleIncoming(message, from: peerID.displayName)
+            }
         } catch {
-            print("❌ PeerSession decode error: \(error)")
+            print("PeerSession decode error: \(error)")
         }
     }
 
-    func session(_ session: MCSession, didReceive stream: InputStream,
+    nonisolated func session(_ session: MCSession, didReceive stream: InputStream,
                  withName streamName: String, fromPeer peerID: MCPeerID) {}
 
-    func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String,
+    nonisolated func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String,
                  fromPeer peerID: MCPeerID, with progress: Progress) {}
 
-    func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String,
+    nonisolated func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String,
                  fromPeer peerID: MCPeerID, at localURL: URL?, withError error: Error?) {}
 
-    // MARK: - Message Handling (called on main thread)
+    // MARK: - Message Handling
 
     private func handleIncoming(_ message: CommandMessage, from peerName: String) {
         switch message.type {
         case .action:
             receivedCommand = message
         case .pairingRequest:
-            // Senders request pairing; handled via MC invitation flow
             break
         case .pairingApproval:
-            // Connection already established via MCSession delegate
             break
         case .pairingRejection:
             connectionState = .disconnected
         case .heartbeat:
             break
         case .disconnect:
-            session?.disconnect()
-            connectionState = .disconnected
             connectedPeerNames.removeAll { $0 == peerName }
+            if connectedPeerNames.isEmpty {
+                connectionState = .disconnected
+                stopHeartbeatTimer()
+                if autoReconnectEnabled {
+                    scheduleReconnect()
+                }
+            }
         case .deviceInfo:
             break
         }
@@ -310,26 +426,38 @@ extension PeerSession: MCSessionDelegate {
 
 extension PeerSession: MCNearbyServiceAdvertiserDelegate {
 
-    func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
+    nonisolated func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
                     didReceiveInvitationFromPeer peerID: MCPeerID,
                     withContext context: Data?,
                     invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-        let request = IncomingPairingRequest(
-            peerID: peerID,
-            deviceName: peerID.displayName,
-            deviceRole: DeviceRole.sender.rawValue
-        )
-        pendingInvitationHandler = invitationHandler
-        publishOnMain {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+
+            let isTrusted = TrustedDeviceStore.shared.isTrusted(id: peerID.displayName)
+            if isTrusted {
+                invitationHandler(true, self.session)
+                return
+            }
+
+            let request = IncomingPairingRequest(
+                peerID: peerID,
+                deviceName: peerID.displayName,
+                deviceRole: DeviceRole.sender.rawValue
+            )
+            self.pendingInvitationHandler = invitationHandler
             self.incomingPairingRequest = request
             self.connectionState = .pairing
         }
     }
 
-    func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
+    nonisolated func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
                     didNotStartAdvertisingPeer error: Error) {
-        publishOnMain {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
             self.connectionState = .error(message: "Could not start advertising: \(error.localizedDescription)")
+            if self.autoReconnectEnabled {
+                self.scheduleReconnect()
+            }
         }
     }
 }
@@ -338,31 +466,38 @@ extension PeerSession: MCNearbyServiceAdvertiserDelegate {
 
 extension PeerSession: MCNearbyServiceBrowserDelegate {
 
-    func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID,
+    nonisolated func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID,
                  withDiscoveryInfo info: [String: String]?) {
         let roleRaw = info?["role"] ?? ""
         let role = DeviceRole(rawValue: roleRaw)
         let peer = DiscoveredPeer(id: peerID.displayName, peerID: peerID, role: role)
-        publishOnMain {
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
             if !self.discoveredPeers.contains(where: { $0.id == peerID.displayName }) {
                 self.discoveredPeers.append(peer)
             }
-            if case .searching = self.connectionState {
+            if !self.isConnected {
                 self.connectionState = .found(peerName: peerID.displayName)
             }
+            self.autoConnectIfTrusted(peer)
         }
     }
 
-    func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
-        publishOnMain {
-            self.discoveredPeers.removeAll { $0.id == peerID.displayName }
+    nonisolated func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
+        DispatchQueue.main.async { [weak self] in
+            self?.discoveredPeers.removeAll { $0.id == peerID.displayName }
         }
     }
 
-    func browser(_ browser: MCNearbyServiceBrowser,
+    nonisolated func browser(_ browser: MCNearbyServiceBrowser,
                  didNotStartBrowsingForPeers error: Error) {
-        publishOnMain {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
             self.connectionState = .error(message: "Could not browse: \(error.localizedDescription)")
+            if self.autoReconnectEnabled {
+                self.scheduleReconnect()
+            }
         }
     }
 }

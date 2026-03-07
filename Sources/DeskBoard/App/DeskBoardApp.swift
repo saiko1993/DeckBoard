@@ -13,19 +13,19 @@ struct DeskBoardApp: App {
                 .onChange(of: scenePhase) { newPhase in
                     handleScenePhase(newPhase)
                 }
+                .onAppear {
+                    appState.ensureConnectionActive()
+                }
         }
     }
 
     private func handleScenePhase(_ phase: ScenePhase) {
         switch phase {
+        case .active:
+            UIApplication.shared.isIdleTimerDisabled = true
+            appState.handleBecameActive()
         case .background:
             break
-        case .active:
-            if case .disconnected = appState.connectionState {
-                appState.reconnect()
-            } else if case .idle = appState.connectionState {
-                appState.reconnect()
-            }
         case .inactive:
             break
         @unknown default:

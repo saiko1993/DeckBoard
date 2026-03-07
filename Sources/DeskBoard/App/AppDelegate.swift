@@ -20,16 +20,18 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
+        PeerSession.shared.enterBackground()
         beginBackgroundTask(application)
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
         endBackgroundTask()
+        PeerSession.shared.enterForeground()
     }
 
     private func beginBackgroundTask(_ application: UIApplication) {
         guard backgroundTaskID == .invalid else { return }
-        backgroundTaskID = application.beginBackgroundTask(withName: "DeskBoardPeerSession") { [weak self] in
+        backgroundTaskID = application.beginBackgroundTask(withName: "DeskBoardPeerAlive") { [weak self] in
             self?.endBackgroundTask()
         }
     }

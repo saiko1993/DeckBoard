@@ -5,7 +5,6 @@ import UIKit
 
 // MARK: - AppState
 
-/// Global application state shared across the entire app via EnvironmentObject.
 @MainActor
 final class AppState: ObservableObject {
 
@@ -52,6 +51,7 @@ final class AppState: ObservableObject {
     private let dashboardStore: DashboardStore
     private let trustedDeviceStore: TrustedDeviceStore
     private var cancellables = Set<AnyCancellable>()
+    private var hasConfigured = false
 
     // MARK: - Init
 
@@ -98,6 +98,25 @@ final class AppState: ObservableObject {
             .store(in: &cancellables)
     }
 
+    // MARK: - Ensure Connection
+
+    func ensureConnectionActive() {
+        guard deviceRole != .unset, isOnboardingDone else { return }
+        if !hasConfigured {
+            configurePeerSession()
+        } else if !connectionState.isConnected {
+            reconnect()
+        }
+    }
+
+    func handleBecameActive() {
+        guard deviceRole != .unset, isOnboardingDone else { return }
+        peerSession.enableAutoReconnect()
+        if !connectionState.isConnected {
+            peerSession.enterForeground()
+        }
+    }
+
     // MARK: - Role Management
 
     func setRole(_ role: DeviceRole) {
@@ -109,7 +128,7 @@ final class AppState: ObservableObject {
     }
 
     private func configurePeerSession() {
-        peerSession.stopAll()
+        hasConfigured = true
         peerSession.configure(deviceName: deviceName, role: deviceRole)
         switch deviceRole {
         case .sender:
