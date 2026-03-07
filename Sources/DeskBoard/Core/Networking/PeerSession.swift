@@ -486,7 +486,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         let wasRecentlyConnected = peer.id == lastConnectedPeerName
 
         guard isTrusted || wasRecentlyConnected else {
-            peerLog.info("Ignoring peer \(peer.displayName): not trusted and not recently connected")
+            peerLog.info("PAIR-002 Untrusted peer ignored: \(peer.displayName)")
             return
         }
 
@@ -494,7 +494,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             updateOnMain { self.connectionState = .verifyingTrustedDevice(name: peer.displayName) }
             if let uuid = peer.deviceUUID,
                !TrustedDeviceStore.shared.validateToken(id: uuid, token: token) {
-                peerLog.warning("Rejected peer \(peer.displayName): pairing token mismatch (UUID: \(uuid))")
+            peerLog.warning("PAIR-001 Token mismatch for peer \(peer.displayName) (UUID: \(uuid))")
                 updateOnMain { self.connectionState = .searching }
                 return
             }
@@ -572,20 +572,23 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private func attemptFastResume() {
         let lastPeer = loadLastConnectedPeer()
         guard let lastPeerName = lastPeer.name else {
-            peerLog.info("Fast resume skipped: no cached peer")
+            peerLog.info("RESUME-001 No cached peer, skipping fast resume")
             return
         }
         if let ts = lastPeer.timestamp, Date().timeIntervalSince(ts) > 24 * 60 * 60 {
-            peerLog.info("Fast resume skipped: cached peer \(lastPeerName) expired (last seen \(ts))")
+            peerLog.info("RESUME-002 Cached peer \(lastPeerName) expired (last seen \(ts))")
             updateOnMain { self.connectionState = .cacheExpired }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                guard let self, !self.isConnected else { return }
-                self.connectionState = .searching
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                guard let self else { return }
+                if !self.isConnected {
+                    self.connectionState = .searching
+                    self.startAllServices()
+                }
             }
             return
         }
         self.lastConnectedPeerName = lastPeerName
-        peerLog.info("Fast resume: attempting reconnect to \(lastPeerName)")
+        peerLog.info("RESUME-003 Reconnecting to last peer: \(lastPeerName)")
         updateOnMain { self.connectionState = .reconnectingToLastDevice(name: lastPeerName) }
         for peer in discoveredPeers where peer.id == lastPeerName {
             if shouldInitiateConnection(to: peer.peerID) {
@@ -736,7 +739,7 @@ extension PeerSession: MCNearbyServiceAdvertiserDelegate {
             let wasRecentlyConnected = peerDisplayName == self.lastConnectedPeerName
 
             if isTrusted || wasRecentlyConnected {
-                peerLog.info("Auto-accepting invitation from \(peerDisplayName): trusted=\(isTrusted), recentlyConnected=\(wasRecentlyConnected)")
+                    peerLog.info("PAIR-003 Auto-accepting invitation from \(peerDisplayName): trusted=\(isTrusted), recentlyConnected=\(wasRecentlyConnected)")
                 self.sessionLock.lock()
                 let sess = self.session
                 self.sessionLock.unlock()
@@ -745,7 +748,7 @@ extension PeerSession: MCNearbyServiceAdvertiserDelegate {
             }
 
             if !self.shouldInitiateConnection(to: capturedPeerID) {
-                peerLog.info("Auto-accepting invitation from \(peerDisplayName): lower priority peer")
+                peerLog.info("PAIR-004 Auto-accepting invitation from \(peerDisplayName): lower priority peer")
                 self.sessionLock.lock()
                 let sess = self.session
                 self.sessionLock.unlock()
