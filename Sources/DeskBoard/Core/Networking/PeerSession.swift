@@ -49,6 +49,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private var browser: MCNearbyServiceBrowser?
     private var pendingInvitationHandler: ((Bool, MCSession?) -> Void)?
     private var currentRole: DeviceRole = .unset
+    private var currentDeviceName: String = ""
+    private var autoReconnectEnabled: Bool = true
+    private var reconnectTimer: Timer?
+    private var heartbeatTimer: Timer?
 
     // MARK: - Init
 
@@ -61,6 +65,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     /// Call once before using; sets up MC peer and session.
     func configure(deviceName: String, role: DeviceRole) {
         currentRole = role
+        currentDeviceName = deviceName
+        autoReconnectEnabled = true
         let pid = MCPeerID(displayName: deviceName)
         peerID = pid
         let sess = MCSession(peer: pid, securityIdentity: nil, encryptionPreference: .required)
@@ -106,6 +112,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     }
 
     func stopAll() {
+        stopTimers()
         stopAdvertising()
         stopBrowsing()
         session?.disconnect()
@@ -138,10 +145,63 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     }
 
     func disconnect() {
+        autoReconnectEnabled = false
+        stopTimers()
         session?.disconnect()
         publishOnMain {
             self.connectionState = .disconnected
             self.connectedPeerNames = []
+        }
+    }
+
+    func enableAutoReconnect() {
+        autoReconnectEnabled = true
+    }
+
+    private func stopTimers() {
+        reconnectTimer?.invalidate()
+        reconnectTimer = nil
+        heartbeatTimer?.invalidate()
+        heartbeatTimer = nil
+    }
+
+    private func scheduleReconnect() {
+        guard autoReconnectEnabled, currentRole != .unset else { return }
+        stopTimers()
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+                guard let self else { return }
+                self.attemptReconnect()
+            }
+        }
+    }
+
+    private func attemptReconnect() {
+        guard autoReconnectEnabled, currentRole != .unset else { return }
+        guard !currentDeviceName.isEmpty else { return }
+
+        if session == nil || session?.connectedPeers.isEmpty == true {
+            configure(deviceName: currentDeviceName, role: currentRole)
+            switch currentRole {
+            case .sender:
+                startBrowsing()
+            case .receiver:
+                startAdvertising()
+            case .unset:
+                break
+            }
+        }
+    }
+
+    private func startHeartbeat() {
+        stopTimers()
+        DispatchQueue.main.async { [weak self] in
+            self?.heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+                guard let self else { return }
+                let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: self.currentDeviceName)
+                self.send(command: msg)
+            }
         }
     }
 
@@ -186,10 +246,12 @@ extension PeerSession: MCSessionDelegate {
                     role: peerRole
                 )
                 self.connectionState = .connected(to: device)
+                self.startHeartbeat()
             case .notConnected:
                 self.connectedPeerNames.removeAll { $0 == peerID.displayName }
                 if self.connectedPeerNames.isEmpty {
                     self.connectionState = .disconnected
+                    self.scheduleReconnect()
                 }
             case .connecting:
                 self.connectionState = .pairing

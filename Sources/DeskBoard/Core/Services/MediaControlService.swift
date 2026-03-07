@@ -7,6 +7,7 @@ final class MediaControlService {
 
     static let shared = MediaControlService()
     private var volumeView: MPVolumeView?
+    private let musicPlayer = MPMusicPlayerController.systemMusicPlayer
 
     private init() {
         setupVolumeView()
@@ -56,6 +57,39 @@ final class MediaControlService {
 
     func brightnessDown() {
         UIScreen.main.brightness = max(UIScreen.main.brightness - 0.1, 0.0)
+    }
+
+    func mediaPlay() {
+        musicPlayer.play()
+    }
+
+    func mediaPause() {
+        musicPlayer.pause()
+    }
+
+    func mediaPlayPause() {
+        if musicPlayer.playbackState == .playing {
+            musicPlayer.pause()
+        } else {
+            musicPlayer.play()
+        }
+    }
+
+    func mediaNext() {
+        musicPlayer.skipToNextItem()
+    }
+
+    func mediaPrevious() {
+        musicPlayer.skipToPreviousItem()
+    }
+
+    func mediaSkipForward() {
+        musicPlayer.currentPlaybackTime += 15
+    }
+
+    func mediaSkipBackward() {
+        let newTime = max(musicPlayer.currentPlaybackTime - 15, 0)
+        musicPlayer.currentPlaybackTime = newTime
     }
 
     func openApp(scheme: String) async -> Bool {

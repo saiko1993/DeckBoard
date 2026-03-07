@@ -150,9 +150,25 @@ final class ActionEngine: ObservableObject {
             let opened = await media.runShortcut(name: name)
             return opened ? .success(detail: "Running \(name)") : .failure(error: "Could not run shortcut")
 
-        case .mediaPlay, .mediaPause, .mediaPlayPause,
-             .mediaNext, .mediaPrevious:
-            return .success(detail: "Media command sent")
+        case .mediaPlay:
+            media.mediaPlay()
+            return .success(detail: "Play")
+
+        case .mediaPause:
+            media.mediaPause()
+            return .success(detail: "Pause")
+
+        case .mediaPlayPause:
+            media.mediaPlayPause()
+            return .success(detail: "Play/Pause")
+
+        case .mediaNext:
+            media.mediaNext()
+            return .success(detail: "Next Track")
+
+        case .mediaPrevious:
+            media.mediaPrevious()
+            return .success(detail: "Previous Track")
 
         case .presentationNext, .presentationPrevious,
              .presentationStart, .presentationEnd:

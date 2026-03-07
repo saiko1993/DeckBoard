@@ -188,6 +188,16 @@ final class AppState: ObservableObject {
             media.volumeDown()
         case .mediaMute:
             media.mute()
+        case .mediaPlay:
+            media.mediaPlay()
+        case .mediaPause:
+            media.mediaPause()
+        case .mediaPlayPause:
+            media.mediaPlayPause()
+        case .mediaNext:
+            media.mediaNext()
+        case .mediaPrevious:
+            media.mediaPrevious()
         case .brightnessUp:
             media.brightnessUp()
         case .brightnessDown:
@@ -196,13 +206,17 @@ final class AppState: ObservableObject {
             Task { await media.openAppByID(appID) }
         case .runShortcut(let name):
             Task { await media.runShortcut(name: name) }
-        case .mediaPlay, .mediaPause, .mediaPlayPause,
-             .mediaNext, .mediaPrevious:
+        case .presentationNext:
+            Task { await media.runShortcut(name: "Next Slide") }
+        case .presentationPrevious:
+            Task { await media.runShortcut(name: "Previous Slide") }
+        case .presentationStart:
+            Task { await media.runShortcut(name: "Start Presentation") }
+        case .presentationEnd:
+            Task { await media.runShortcut(name: "End Presentation") }
+        case .lockScreen:
             break
-        case .presentationNext, .presentationPrevious,
-             .presentationStart, .presentationEnd:
-            break
-        case .keyboardShortcut, .macro, .none, .lockScreen:
+        case .keyboardShortcut, .macro, .none:
             break
         }
     }
@@ -233,6 +247,7 @@ final class AppState: ObservableObject {
     // MARK: - Reconnect
 
     func reconnect() {
+        peerSession.enableAutoReconnect()
         configurePeerSession()
     }
 

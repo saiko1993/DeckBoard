@@ -23,6 +23,8 @@ struct DeskBoardApp: App {
         case .active:
             if case .disconnected = appState.connectionState {
                 appState.reconnect()
+            } else if case .idle = appState.connectionState {
+                appState.reconnect()
             }
         case .inactive:
             break
