@@ -60,6 +60,8 @@
 		AA11BB22CC33DD44000F /* HTTPActionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD440010 /* HTTPActionService.swift */; };
 		AA11BB22CC33DD440011 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD440012 /* DiagnosticsView.swift */; };
 		AA11BB22CC33DD440013 /* ExecutionLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD440014 /* ExecutionLogView.swift */; };
+		BB11CC22DD33EE440001 /* AppCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB11CC22DD33EE440002 /* AppCatalog.swift */; };
+		BB11CC22DD33EE440003 /* MediaControlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB11CC22DD33EE440004 /* MediaControlService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -127,6 +129,8 @@
 		AA11BB22CC33DD44000C /* BackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupService.swift; sourceTree = "<group>"; };
 		AA11BB22CC33DD44000E /* ExecutionLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionLogStore.swift; sourceTree = "<group>"; };
 		AA11BB22CC33DD440010 /* HTTPActionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPActionService.swift; sourceTree = "<group>"; };
+		BB11CC22DD33EE440002 /* AppCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCatalog.swift; sourceTree = "<group>"; };
+		BB11CC22DD33EE440004 /* MediaControlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaControlService.swift; sourceTree = "<group>"; };
 		AA11BB22CC33DD440012 /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
 		AA11BB22CC33DD440014 /* ExecutionLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionLogView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -176,6 +180,7 @@
 				AA11BB22CC33DD44000C /* BackupService.swift */,
 				AA11BB22CC33DD44000E /* ExecutionLogStore.swift */,
 				AA11BB22CC33DD440010 /* HTTPActionService.swift */,
+				BB11CC22DD33EE440004 /* MediaControlService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -313,6 +318,7 @@
 				AA11BB22CC33DD440008 /* ExecutionLog.swift */,
 				2EFD066E3243CDD000314374 /* PairedDevice.swift */,
 				F3E3E39FE27D53F19B83025F /* SampleData.swift */,
+				BB11CC22DD33EE440002 /* AppCatalog.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -608,6 +614,8 @@
 				AA11BB22CC33DD44000F /* HTTPActionService.swift in Sources */,
 				AA11BB22CC33DD440011 /* DiagnosticsView.swift in Sources */,
 				AA11BB22CC33DD440013 /* ExecutionLogView.swift in Sources */,
+				BB11CC22DD33EE440001 /* AppCatalog.swift in Sources */,
+				BB11CC22DD33EE440003 /* MediaControlService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
