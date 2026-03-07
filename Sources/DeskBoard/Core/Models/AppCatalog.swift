@@ -40,7 +40,6 @@ enum AppCategory: String, CaseIterable, Sendable {
     case health = "Health"
     case news = "News"
     case developer = "Developer"
-    case macApps = "Mac Apps"
 
     var systemImage: String {
         switch self {
@@ -55,7 +54,6 @@ enum AppCategory: String, CaseIterable, Sendable {
         case .health:         return "heart.fill"
         case .news:           return "newspaper.fill"
         case .developer:      return "terminal.fill"
-        case .macApps:        return "desktopcomputer"
         }
     }
 }
@@ -126,27 +124,8 @@ enum AppCatalog {
 
         AppShortcut(id: "apple_news", name: "Apple News", urlScheme: "applenews://", icon: "newspaper.fill", colorHex: "#FF2D55", category: .news),
 
-        AppShortcut(id: "terminal", name: "Terminal", urlScheme: "shortcuts://run-shortcut?name=Open%20Terminal", icon: "terminal.fill", colorHex: "#000000", category: .developer),
-        AppShortcut(id: "xcode", name: "Xcode", urlScheme: "shortcuts://run-shortcut?name=Open%20Xcode", icon: "hammer.fill", colorHex: "#147EFB", category: .developer),
-        AppShortcut(id: "vscode", name: "VS Code", urlScheme: "vscode://", icon: "chevron.left.forwardslash.chevron.right", colorHex: "#007ACC", category: .developer),
-        AppShortcut(id: "github_desktop", name: "GitHub Desktop", urlScheme: "x-github-client://", icon: "arrow.triangle.branch", colorHex: "#6E5494", category: .developer),
-        AppShortcut(id: "iterm", name: "iTerm", urlScheme: "iterm2://", icon: "terminal.fill", colorHex: "#000000", category: .developer),
-        AppShortcut(id: "postman", name: "Postman", urlScheme: "postman://", icon: "arrow.up.arrow.down", colorHex: "#FF6C37", category: .developer),
-        AppShortcut(id: "docker", name: "Docker", urlScheme: "docker://", icon: "shippingbox.fill", colorHex: "#2496ED", category: .developer),
-        AppShortcut(id: "sourcetree", name: "Sourcetree", urlScheme: "sourcetree://", icon: "arrow.triangle.branch", colorHex: "#0052CC", category: .developer),
         AppShortcut(id: "figma", name: "Figma", urlScheme: "figma://", icon: "paintbrush.pointed.fill", colorHex: "#F24E1E", category: .developer),
-        AppShortcut(id: "sublime_text", name: "Sublime Text", urlScheme: "subl://", icon: "doc.text.fill", colorHex: "#FF9800", category: .developer),
-
-        AppShortcut(id: "finder", name: "Finder", urlScheme: "shortcuts://run-shortcut?name=Open%20Finder", icon: "folder.fill", colorHex: "#007AFF", category: .macApps),
-        AppShortcut(id: "system_settings", name: "System Settings", urlScheme: "x-apple.systempreferences://", icon: "gearshape.fill", colorHex: "#636366", category: .macApps),
-        AppShortcut(id: "activity_monitor", name: "Activity Monitor", urlScheme: "shortcuts://run-shortcut?name=Open%20Activity%20Monitor", icon: "chart.bar.fill", colorHex: "#34C759", category: .macApps),
-        AppShortcut(id: "console", name: "Console", urlScheme: "shortcuts://run-shortcut?name=Open%20Console", icon: "text.alignleft", colorHex: "#636366", category: .macApps),
-        AppShortcut(id: "preview", name: "Preview", urlScheme: "shortcuts://run-shortcut?name=Open%20Preview", icon: "photo.fill", colorHex: "#007AFF", category: .macApps),
-        AppShortcut(id: "textedit", name: "TextEdit", urlScheme: "shortcuts://run-shortcut?name=Open%20TextEdit", icon: "doc.plaintext.fill", colorHex: "#636366", category: .macApps),
-        AppShortcut(id: "keynote", name: "Keynote", urlScheme: "com.apple.iWork.Keynote://", icon: "play.rectangle.fill", colorHex: "#007AFF", category: .macApps),
-        AppShortcut(id: "pages", name: "Pages", urlScheme: "com.apple.iWork.Pages://", icon: "doc.richtext.fill", colorHex: "#FF9500", category: .macApps),
-        AppShortcut(id: "numbers", name: "Numbers", urlScheme: "com.apple.iWork.Numbers://", icon: "tablecells.fill", colorHex: "#34C759", category: .macApps),
-        AppShortcut(id: "screen_sharing", name: "Screen Sharing", urlScheme: "vnc://", icon: "display", colorHex: "#5856D6", category: .macApps),
+        AppShortcut(id: "github_desktop", name: "GitHub Desktop", urlScheme: "x-github-client://", icon: "arrow.triangle.branch", colorHex: "#6E5494", category: .developer),
     ]
 
     static func apps(for category: AppCategory) -> [AppShortcut] {

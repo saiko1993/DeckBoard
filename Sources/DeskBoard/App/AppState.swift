@@ -36,8 +36,6 @@ final class AppState: ObservableObject {
     private let trustedDeviceStore: TrustedDeviceStore
     private var cancellables = Set<AnyCancellable>()
     private var hasConfigured = false
-    private var connectionMonitorTimer: DispatchSourceTimer?
-    private let monitorQueue = DispatchQueue(label: "com.deskboard.connectionmonitor", qos: .userInitiated)
 
     init(
         peerSession: PeerSession = .shared,
@@ -87,7 +85,6 @@ final class AppState: ObservableObject {
         } else if !connectionState.isConnected {
             reconnect()
         }
-        startConnectionMonitor()
     }
 
     func handleBecameActive() {
@@ -95,7 +92,6 @@ final class AppState: ObservableObject {
         UIApplication.shared.isIdleTimerDisabled = true
         peerSession.enableAutoReconnect()
         peerSession.enterForeground()
-        startConnectionMonitor()
     }
 
     func handleEnteredBackground() {
@@ -115,28 +111,6 @@ final class AppState: ObservableObject {
         hasConfigured = true
         peerSession.configure(deviceName: deviceName, role: deviceRole)
         peerSession.startAllServices()
-    }
-
-    private func startConnectionMonitor() {
-        stopConnectionMonitor()
-        let timer = DispatchSource.makeTimerSource(queue: monitorQueue)
-        timer.schedule(deadline: .now() + 15.0, repeating: 15.0, leeway: .seconds(3))
-        timer.setEventHandler { [weak self] in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                guard self.deviceRole != .unset, self.isOnboardingDone else { return }
-                if !self.peerSession.isConnected {
-                    self.peerSession.restartServices()
-                }
-            }
-        }
-        timer.resume()
-        connectionMonitorTimer = timer
-    }
-
-    private func stopConnectionMonitor() {
-        connectionMonitorTimer?.cancel()
-        connectionMonitorTimer = nil
     }
 
     func saveDashboards() {
@@ -218,6 +192,12 @@ final class AppState: ObservableObject {
             Task { _ = await media.openAppByID(appID) }
         case .runShortcut(let name):
             Task { _ = await media.runShortcut(name: name) }
+        case .toggleDarkMode:
+            Task { _ = await media.toggleDarkMode() }
+        case .screenshot:
+            Task { _ = await media.takeScreenshot() }
+        case .toggleDoNotDisturb:
+            Task { _ = await media.toggleDoNotDisturb() }
         case .presentationNext:
             Task { _ = await media.runShortcut(name: "Next Slide") }
         case .presentationPrevious:
@@ -226,27 +206,9 @@ final class AppState: ObservableObject {
             Task { _ = await media.runShortcut(name: "Start Presentation") }
         case .presentationEnd:
             Task { _ = await media.runShortcut(name: "End Presentation") }
-        case .lockScreen:
-            break
-        case .openTerminal:
-            Task { _ = await media.openTerminal() }
-        case .runScript(let name):
-            Task { _ = await media.runScript(name: name) }
-        case .toggleDarkMode:
-            Task { _ = await media.toggleDarkMode() }
-        case .screenshot:
-            Task { _ = await media.takeScreenshot() }
-        case .screenRecord:
-            Task { _ = await media.toggleScreenRecord() }
-        case .forceQuitApp:
-            Task { _ = await media.forceQuitFrontApp() }
-        case .emptyTrash:
-            Task { _ = await media.emptyTrash() }
-        case .toggleDoNotDisturb:
-            Task { _ = await media.toggleDoNotDisturb() }
-        case .sleepDisplay:
-            Task { _ = await media.sleepDisplay() }
-        case .keyboardShortcut, .macro, .none:
+        case .lockScreen, .openTerminal, .runScript, .screenRecord,
+             .forceQuitApp, .emptyTrash, .sleepDisplay,
+             .keyboardShortcut, .macro, .none:
             break
         }
     }
@@ -278,7 +240,6 @@ final class AppState: ObservableObject {
     }
 
     func disconnect() {
-        stopConnectionMonitor()
         peerSession.disconnect()
     }
 }

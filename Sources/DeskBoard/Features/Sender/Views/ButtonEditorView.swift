@@ -210,20 +210,8 @@ struct ButtonEditorView: View {
                 TextField("Text to send", text: $viewModel.textPayload)
             }
 
-            if case .keyboardShortcut = viewModel.selectedAction {
-                TextField("Key (e.g. c, space, return)", text: $viewModel.shortcutKey)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                ModifierPicker(selected: $viewModel.shortcutModifiers)
-            }
-
             if case .runShortcut = viewModel.selectedAction {
                 TextField("Shortcut Name", text: $viewModel.shortcutName)
-                    .autocorrectionDisabled()
-            }
-
-            if case .runScript = viewModel.selectedAction {
-                TextField("Script / Shortcut Name", text: $viewModel.shortcutName)
                     .autocorrectionDisabled()
             }
 
@@ -378,14 +366,9 @@ struct ActionPickerView: View {
         Section("Device Controls") {
             actionRow(.brightnessUp, nil)
             actionRow(.brightnessDown, nil)
-            actionRow(.lockScreen, nil)
             actionRow(.toggleDarkMode, nil)
             actionRow(.screenshot, nil)
-            actionRow(.screenRecord, nil)
             actionRow(.toggleDoNotDisturb, nil)
-            actionRow(.sleepDisplay, nil)
-            actionRow(.forceQuitApp, nil)
-            actionRow(.emptyTrash, nil)
         }
     }
 
@@ -412,7 +395,7 @@ struct ActionPickerView: View {
 
     @ViewBuilder
     private var shortcutsSection: some View {
-        Section("Shortcuts & Scripts") {
+        Section("Shortcuts") {
             Button {
                 selectedAction = .runShortcut(name: "")
                 dismiss()
@@ -425,25 +408,6 @@ struct ActionPickerView: View {
                         .foregroundStyle(.primary)
                     Spacer()
                     if case .runShortcut = selectedAction {
-                        Image(systemName: "checkmark").foregroundStyle(.blue)
-                    }
-                }
-            }
-
-            actionRow(.openTerminal, nil)
-
-            Button {
-                selectedAction = .runScript(name: "")
-                dismiss()
-            } label: {
-                HStack {
-                    Image(systemName: "scroll.fill")
-                        .foregroundStyle(.blue)
-                        .frame(width: 28)
-                    Text("Run Script")
-                        .foregroundStyle(.primary)
-                    Spacer()
-                    if case .runScript = selectedAction {
                         Image(systemName: "checkmark").foregroundStyle(.blue)
                     }
                 }
@@ -467,14 +431,13 @@ struct ActionPickerView: View {
             customActionButton(.openURL(url: ""), "Open URL")
             customActionButton(.sendText(text: ""), "Send Text")
             customActionButton(.openDeepLink(url: ""), "Open Deep Link")
-            customActionButton(.keyboardShortcut(modifiers: [], key: ""), "Keyboard Shortcut")
         }
     }
 
     @ViewBuilder
     private var filteredResults: some View {
         let matchingActions = ButtonAction.allSimpleActions.filter {
-            $0.displayName.localizedStandardContains(searchText)
+            $0.isSupportedOnIOS && $0.displayName.localizedStandardContains(searchText)
         }
         let matchingApps = AppCatalog.search(searchText)
 
@@ -620,42 +583,3 @@ private struct AppCategoryPickerView: View {
     }
 }
 
-// MARK: - ModifierPicker
-
-private struct ModifierPicker: View {
-    @Binding var selected: [String]
-
-    private let modifiers = ["⌘ Cmd", "⌥ Option", "⇧ Shift", "⌃ Control"]
-    private let keys = ["cmd", "option", "shift", "control"]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Modifiers")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            HStack(spacing: 8) {
-                ForEach(0..<modifiers.count, id: \.self) { index in
-                    let key = keys[index]
-                    let isSelected = selected.contains(key)
-                    Button {
-                        if isSelected {
-                            selected.removeAll { $0 == key }
-                        } else {
-                            selected.append(key)
-                        }
-                    } label: {
-                        Text(modifiers[index])
-                            .font(.caption.weight(.medium))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule().fill(isSelected ? Color.blue : Color(.systemGray5))
-                            )
-                            .foregroundStyle(isSelected ? .white : .primary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-}

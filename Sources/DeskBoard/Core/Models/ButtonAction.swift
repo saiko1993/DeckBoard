@@ -181,20 +181,25 @@ extension ButtonAction {
             .mediaMute,
             .brightnessUp,
             .brightnessDown,
-            .lockScreen,
             .presentationNext,
             .presentationPrevious,
             .presentationStart,
             .presentationEnd,
-            .openTerminal,
             .toggleDarkMode,
             .screenshot,
-            .screenRecord,
-            .forceQuitApp,
-            .emptyTrash,
-            .toggleDoNotDisturb,
-            .sleepDisplay
+            .toggleDoNotDisturb
         ]
+    }
+
+    var isSupportedOnIOS: Bool {
+        switch self {
+        case .lockScreen, .openTerminal, .runScript,
+             .screenRecord, .forceQuitApp, .emptyTrash,
+             .sleepDisplay, .keyboardShortcut:
+            return false
+        default:
+            return true
+        }
     }
 
     var colorHex: String? {

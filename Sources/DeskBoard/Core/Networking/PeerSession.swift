@@ -1,5 +1,6 @@
 import Foundation
 @preconcurrency import MultipeerConnectivity
+import KeychainAccess
 
 struct IncomingPairingRequest: @unchecked Sendable, Identifiable {
     var id: String { peerID.displayName }
@@ -12,6 +13,7 @@ struct DiscoveredPeer: Identifiable, @unchecked Sendable {
     let id: String
     let peerID: MCPeerID
     let role: DeviceRole?
+    let deviceUUID: String?
 
     var displayName: String { peerID.displayName }
 }
@@ -49,9 +51,22 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private var lastHeartbeatSentTime: Date = Date()
     private var isReconnecting: Bool = false
     private var pendingInvitePeers: Set<String> = []
+    private var isInForeground: Bool = true
 
     private let timerQueue = DispatchQueue(label: "com.deskboard.peersession.timers", qos: .userInitiated)
     private let sessionLock = NSLock()
+
+    private static let keychainService = Keychain(service: "com.deskboard.device-identity")
+    private static let deviceUUIDKey = "deviceUUID"
+
+    static var stableDeviceUUID: String {
+        if let existing = try? keychainService.getString(deviceUUIDKey) {
+            return existing
+        }
+        let newUUID = UUID().uuidString
+        try? keychainService.set(newUUID, key: deviceUUIDKey)
+        return newUUID
+    }
 
     private override init() {
         super.init()
@@ -110,7 +125,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         stopAdvertisingInternal()
         let info: [String: String] = [
             "role": currentRole.rawValue,
-            "version": AppConfiguration.appVersion
+            "version": AppConfiguration.appVersion,
+            "deviceUUID": Self.stableDeviceUUID
         ]
         let adv = MCNearbyServiceAdvertiser(peer: pid, discoveryInfo: info, serviceType: serviceType)
         adv.delegate = self
@@ -249,7 +265,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         return !session.connectedPeers.isEmpty
     }
 
-    // MARK: - Timers
+    // MARK: - Timers (foreground only)
 
     private func cancelAllTimers() {
         stopReconnectTimer()
@@ -285,6 +301,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     }
 
     private func scheduleReconnect() {
+        guard isInForeground else { return }
         guard autoReconnectEnabled, currentRole != .unset else { return }
         guard reconnectAttempts < maxReconnectAttempts else { return }
         guard !isReconnecting else { return }
@@ -306,6 +323,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     }
 
     private func attemptReconnect() {
+        guard isInForeground else {
+            isReconnecting = false
+            return
+        }
         guard autoReconnectEnabled, currentRole != .unset else {
             isReconnecting = false
             return
@@ -346,9 +367,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         return myPeer.displayName.compare(remotePeer.displayName) == .orderedDescending
     }
 
-    // MARK: - Heartbeat & Stale Detection
+    // MARK: - Heartbeat & Stale Detection (foreground only)
 
     private func startHeartbeat() {
+        guard isInForeground else { return }
         stopHeartbeatTimer()
         stopStaleCheckTimer()
 
@@ -359,6 +381,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         hbTimer.setEventHandler { [weak self] in
             guard let strongSelf = self else { return }
             DispatchQueue.main.async {
+                guard strongSelf.isInForeground else { return }
                 if strongSelf.isConnected {
                     let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: deviceName)
                     strongSelf.send(command: msg)
@@ -376,6 +399,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         scTimer.setEventHandler { [weak self] in
             guard let strongSelf = self else { return }
             DispatchQueue.main.async {
+                guard strongSelf.isInForeground else { return }
                 guard strongSelf.isConnected else { return }
                 let elapsed = Date().timeIntervalSince(strongSelf.lastDataReceivedTime)
                 if elapsed > 35.0 {
@@ -403,7 +427,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private func onConnectionLost() {
         stopHeartbeatTimer()
         stopStaleCheckTimer()
-        if autoReconnectEnabled {
+        if autoReconnectEnabled && isInForeground {
             reconnectAttempts = 0
             pendingInvitePeers = []
             rebuildSession()
@@ -415,7 +439,12 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private func autoConnectIfTrusted(_ peer: DiscoveredPeer) {
         guard !isConnected else { return }
 
-        let isTrusted = TrustedDeviceStore.shared.isTrusted(id: peer.id)
+        let isTrusted: Bool
+        if let uuid = peer.deviceUUID {
+            isTrusted = TrustedDeviceStore.shared.isTrusted(id: uuid)
+        } else {
+            isTrusted = TrustedDeviceStore.shared.isTrusted(id: peer.id)
+        }
         let wasRecentlyConnected = peer.id == lastConnectedPeerName
 
         guard isTrusted || wasRecentlyConnected else { return }
@@ -439,20 +468,22 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             let data = try encoder.encode(command)
             try sess.send(data, toPeers: peers, with: .reliable)
         } catch {
-            // Silently handle - stale check will catch dead connections
         }
     }
 
     // MARK: - Lifecycle
 
     func enterBackground() {
+        isInForeground = false
         if isConnected {
             let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: currentDeviceName)
             send(command: msg)
         }
+        cancelAllTimers()
     }
 
     func enterForeground() {
+        isInForeground = true
         guard autoReconnectEnabled, currentRole != .unset else { return }
 
         lastDataReceivedTime = Date()
@@ -484,7 +515,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             rebuildSession()
         }
         startAllServices()
-        if isConnected {
+        if isConnected && isInForeground {
             startHeartbeat()
         }
     }
@@ -525,7 +556,9 @@ extension PeerSession: MCSessionDelegate {
                     role: peerRole
                 )
                 self.connectionState = .connected(to: device)
-                self.startHeartbeat()
+                if self.isInForeground {
+                    self.startHeartbeat()
+                }
 
                 TrustedDeviceStore.shared.updateLastSeen(id: peerName)
 
@@ -644,7 +677,7 @@ extension PeerSession: MCNearbyServiceAdvertiserDelegate {
                     didNotStartAdvertisingPeer error: Error) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            if self.autoReconnectEnabled {
+            if self.autoReconnectEnabled && self.isInForeground {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
                     self?.startAdvertising()
                 }
@@ -661,7 +694,8 @@ extension PeerSession: MCNearbyServiceBrowserDelegate {
                  withDiscoveryInfo info: [String: String]?) {
         let roleRaw = info?["role"] ?? ""
         let role = DeviceRole(rawValue: roleRaw)
-        let peer = DiscoveredPeer(id: peerID.displayName, peerID: peerID, role: role)
+        let deviceUUID = info?["deviceUUID"]
+        let peer = DiscoveredPeer(id: peerID.displayName, peerID: peerID, role: role, deviceUUID: deviceUUID)
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
@@ -688,7 +722,7 @@ extension PeerSession: MCNearbyServiceBrowserDelegate {
                  didNotStartBrowsingForPeers error: Error) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            if self.autoReconnectEnabled {
+            if self.autoReconnectEnabled && self.isInForeground {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
                     self?.startBrowsing()
                 }

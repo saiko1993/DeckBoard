@@ -1,97 +1,61 @@
 import UIKit
+import BackgroundTasks
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
-    private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
-    private var keepAliveTimer: DispatchSourceTimer?
-    private let keepAliveQueue = DispatchQueue(label: "com.deskboard.keepalive", qos: .userInitiated)
-    private var cachedDeviceName: String = ""
+    private static let bgTaskID = "com.deskboard.connection-keepalive"
 
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         let role = AppConfiguration.deviceRole
-        cachedDeviceName = AppConfiguration.deviceName
         if role == .sender || role == .receiver {
             application.isIdleTimerDisabled = true
+        }
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.bgTaskID, using: .main) { task in
+            guard let bgTask = task as? BGAppRefreshTask else { return }
+            self.handleBGRefresh(bgTask)
         }
         return true
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
-        stopKeepAlive()
         let session = PeerSession.shared
-        let name = cachedDeviceName
+        let name = AppConfiguration.deviceName
         let msg = CommandMessage(type: .disconnect, payload: .disconnect, senderID: name)
         session.send(command: msg)
-        Thread.sleep(forTimeInterval: 0.5)
+        Thread.sleep(forTimeInterval: 0.3)
         session.stopAll()
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        cachedDeviceName = AppConfiguration.deviceName
-        beginBackgroundTask(application)
-        startKeepAlive()
         PeerSession.shared.enterBackground()
+        scheduleBGRefresh()
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
-        stopKeepAlive()
-        endBackgroundTask()
         PeerSession.shared.enterForeground()
         UIApplication.shared.isIdleTimerDisabled = true
     }
 
-    private func beginBackgroundTask(_ application: UIApplication) {
-        guard backgroundTaskID == .invalid else { return }
-        backgroundTaskID = application.beginBackgroundTask(withName: "DeskBoardPeerAlive") { [weak self] in
-            self?.renewBackgroundTask()
-        }
+    private func scheduleBGRefresh() {
+        let request = BGAppRefreshTaskRequest(identifier: Self.bgTaskID)
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
+        try? BGTaskScheduler.shared.submit(request)
     }
 
-    private func renewBackgroundTask() {
-        let app = UIApplication.shared
-        let oldID = backgroundTaskID
-        backgroundTaskID = .invalid
-
-        backgroundTaskID = app.beginBackgroundTask(withName: "DeskBoardPeerAlive") { [weak self] in
-            self?.renewBackgroundTask()
+    private func handleBGRefresh(_ task: BGAppRefreshTask) {
+        task.expirationHandler = {
+            task.setTaskCompleted(success: false)
         }
-
-        if oldID != .invalid {
-            app.endBackgroundTask(oldID)
+        let session = PeerSession.shared
+        if session.isConnected {
+            let name = AppConfiguration.deviceName
+            let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: name)
+            session.send(command: msg)
         }
-    }
-
-    private func endBackgroundTask() {
-        guard backgroundTaskID != .invalid else { return }
-        UIApplication.shared.endBackgroundTask(backgroundTaskID)
-        backgroundTaskID = .invalid
-    }
-
-    private func startKeepAlive() {
-        stopKeepAlive()
-        let deviceName = cachedDeviceName
-        let timer = DispatchSource.makeTimerSource(queue: keepAliveQueue)
-        timer.schedule(deadline: .now() + 3.0, repeating: 8.0, leeway: .seconds(1))
-        timer.setEventHandler {
-            DispatchQueue.main.async {
-                let session = PeerSession.shared
-                if session.isConnected {
-                    let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: deviceName)
-                    session.send(command: msg)
-                } else {
-                    session.restartServices()
-                }
-            }
-        }
-        timer.resume()
-        keepAliveTimer = timer
-    }
-
-    private func stopKeepAlive() {
-        keepAliveTimer?.cancel()
-        keepAliveTimer = nil
+        task.setTaskCompleted(success: true)
+        scheduleBGRefresh()
     }
 }
