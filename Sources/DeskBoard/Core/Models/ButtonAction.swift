@@ -1,7 +1,5 @@
 import Foundation
 
-// MARK: - ButtonAction
-
 enum ButtonAction: Codable, Hashable, Sendable {
     case none
     case openURL(url: String)
@@ -13,6 +11,7 @@ enum ButtonAction: Codable, Hashable, Sendable {
     case mediaPrevious
     case mediaVolumeUp
     case mediaVolumeDown
+    case mediaMute
     case presentationNext
     case presentationPrevious
     case presentationStart
@@ -20,6 +19,11 @@ enum ButtonAction: Codable, Hashable, Sendable {
     case keyboardShortcut(modifiers: [String], key: String)
     case openDeepLink(url: String)
     case macro(actions: [ButtonAction])
+    case openApp(appID: String)
+    case brightnessUp
+    case brightnessDown
+    case lockScreen
+    case runShortcut(name: String)
 
     var displayName: String {
         switch self {
@@ -33,6 +37,7 @@ enum ButtonAction: Codable, Hashable, Sendable {
         case .mediaPrevious:        return "Previous Track"
         case .mediaVolumeUp:        return "Volume Up"
         case .mediaVolumeDown:      return "Volume Down"
+        case .mediaMute:            return "Mute"
         case .presentationNext:     return "Next Slide"
         case .presentationPrevious: return "Previous Slide"
         case .presentationStart:    return "Start Presentation"
@@ -40,6 +45,16 @@ enum ButtonAction: Codable, Hashable, Sendable {
         case .keyboardShortcut:     return "Keyboard Shortcut"
         case .openDeepLink:         return "Open Deep Link"
         case .macro:                return "Macro"
+        case .openApp(let appID):
+            if let app = AppCatalog.app(withID: appID) {
+                return "Open \(app.name)"
+            }
+            return "Open App"
+        case .brightnessUp:         return "Brightness Up"
+        case .brightnessDown:       return "Brightness Down"
+        case .lockScreen:           return "Lock Screen"
+        case .runShortcut(let name):
+            return name.isEmpty ? "Run Shortcut" : "Run: \(name)"
         }
     }
 
@@ -55,6 +70,7 @@ enum ButtonAction: Codable, Hashable, Sendable {
         case .mediaPrevious:        return "backward.fill"
         case .mediaVolumeUp:        return "speaker.plus.fill"
         case .mediaVolumeDown:      return "speaker.minus.fill"
+        case .mediaMute:            return "speaker.slash.fill"
         case .presentationNext:     return "arrow.right.circle.fill"
         case .presentationPrevious: return "arrow.left.circle.fill"
         case .presentationStart:    return "play.rectangle.fill"
@@ -62,6 +78,15 @@ enum ButtonAction: Codable, Hashable, Sendable {
         case .keyboardShortcut:     return "keyboard"
         case .openDeepLink:         return "arrow.up.right.circle"
         case .macro:                return "square.stack.3d.up.fill"
+        case .openApp(let appID):
+            if let app = AppCatalog.app(withID: appID) {
+                return app.icon
+            }
+            return "app.fill"
+        case .brightnessUp:         return "sun.max.fill"
+        case .brightnessDown:       return "sun.min.fill"
+        case .lockScreen:           return "lock.fill"
+        case .runShortcut:          return "bolt.fill"
         }
     }
 
@@ -70,7 +95,7 @@ enum ButtonAction: Codable, Hashable, Sendable {
         case .none, .openURL, .sendText, .openDeepLink:
             return .general
         case .mediaPlay, .mediaPause, .mediaPlayPause, .mediaNext,
-             .mediaPrevious, .mediaVolumeUp, .mediaVolumeDown:
+             .mediaPrevious, .mediaVolumeUp, .mediaVolumeDown, .mediaMute:
             return .media
         case .presentationNext, .presentationPrevious, .presentationStart, .presentationEnd:
             return .presentation
@@ -78,14 +103,21 @@ enum ButtonAction: Codable, Hashable, Sendable {
             return .keyboard
         case .macro:
             return .macro
+        case .openApp:
+            return .apps
+        case .brightnessUp, .brightnessDown, .lockScreen:
+            return .device
+        case .runShortcut:
+            return .shortcuts
         }
     }
-
-    // MARK: - ActionCategory
 
     enum ActionCategory: String, CaseIterable, Sendable {
         case general      = "General"
         case media        = "Media"
+        case apps         = "Apps"
+        case device       = "Device"
+        case shortcuts    = "Shortcuts"
         case presentation = "Presentation"
         case keyboard     = "Keyboard"
         case macro        = "Macro"
@@ -94,6 +126,9 @@ enum ButtonAction: Codable, Hashable, Sendable {
             switch self {
             case .general:      return "bolt.fill"
             case .media:        return "music.note"
+            case .apps:         return "square.grid.2x2.fill"
+            case .device:       return "ipad.and.iphone"
+            case .shortcuts:    return "bolt.fill"
             case .presentation: return "rectangle.on.rectangle"
             case .keyboard:     return "keyboard"
             case .macro:        return "square.stack.3d.up.fill"
@@ -101,8 +136,6 @@ enum ButtonAction: Codable, Hashable, Sendable {
         }
     }
 }
-
-// MARK: - All Actions (flat list for pickers)
 
 extension ButtonAction {
     static var allSimpleActions: [ButtonAction] {
@@ -115,10 +148,21 @@ extension ButtonAction {
             .mediaPrevious,
             .mediaVolumeUp,
             .mediaVolumeDown,
+            .mediaMute,
+            .brightnessUp,
+            .brightnessDown,
+            .lockScreen,
             .presentationNext,
             .presentationPrevious,
             .presentationStart,
             .presentationEnd
         ]
+    }
+
+    var colorHex: String? {
+        if case .openApp(let appID) = self {
+            return AppCatalog.app(withID: appID)?.colorHex
+        }
+        return nil
     }
 }

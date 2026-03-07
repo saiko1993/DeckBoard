@@ -102,6 +102,7 @@ final class ActionEngine: ObservableObject {
     }
 
     private func performAction(_ action: ButtonAction) async -> ExecutionResult {
+        let media = MediaControlService.shared
         switch action {
         case .none:
             return .success(detail: nil)
@@ -116,9 +117,41 @@ final class ActionEngine: ObservableObject {
             UIPasteboard.general.string = text
             return .success(detail: "Copied to clipboard")
 
+        case .mediaVolumeUp:
+            media.volumeUp()
+            return .success(detail: "Volume Up")
+
+        case .mediaVolumeDown:
+            media.volumeDown()
+            return .success(detail: "Volume Down")
+
+        case .mediaMute:
+            media.mute()
+            return .success(detail: "Muted")
+
+        case .brightnessUp:
+            media.brightnessUp()
+            return .success(detail: "Brightness Up")
+
+        case .brightnessDown:
+            media.brightnessDown()
+            return .success(detail: "Brightness Down")
+
+        case .openApp(let appID):
+            let opened = await media.openAppByID(appID)
+            if opened {
+                let name = AppCatalog.app(withID: appID)?.name ?? appID
+                return .success(detail: "Opened \(name)")
+            } else {
+                return .failure(error: "App not installed")
+            }
+
+        case .runShortcut(let name):
+            let opened = await media.runShortcut(name: name)
+            return opened ? .success(detail: "Running \(name)") : .failure(error: "Could not run shortcut")
+
         case .mediaPlay, .mediaPause, .mediaPlayPause,
-             .mediaNext, .mediaPrevious,
-             .mediaVolumeUp, .mediaVolumeDown:
+             .mediaNext, .mediaPrevious:
             return .success(detail: "Media command sent")
 
         case .presentationNext, .presentationPrevious,
@@ -127,6 +160,9 @@ final class ActionEngine: ObservableObject {
 
         case .keyboardShortcut(let modifiers, let key):
             return .success(detail: "Shortcut: \(modifiers.joined(separator: "+"))+\(key)")
+
+        case .lockScreen:
+            return .success(detail: "Lock command sent")
 
         case .macro(let actions):
             return await executeMacro(actions)

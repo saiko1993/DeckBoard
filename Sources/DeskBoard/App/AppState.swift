@@ -175,23 +175,34 @@ final class AppState: ObservableObject {
     }
 
     private func executeAction(_ action: ButtonAction) {
+        let media = MediaControlService.shared
         switch action {
         case .openURL(let url), .openDeepLink(let url):
             guard let url = URL(string: url) else { return }
             UIApplication.shared.open(url)
-        case .sendText:
-            // Text is shown in the IncomingCommandView for the user to copy/paste
-            break
+        case .sendText(let text):
+            UIPasteboard.general.string = text
+        case .mediaVolumeUp:
+            media.volumeUp()
+        case .mediaVolumeDown:
+            media.volumeDown()
+        case .mediaMute:
+            media.mute()
+        case .brightnessUp:
+            media.brightnessUp()
+        case .brightnessDown:
+            media.brightnessDown()
+        case .openApp(let appID):
+            Task { await media.openAppByID(appID) }
+        case .runShortcut(let name):
+            Task { await media.runShortcut(name: name) }
         case .mediaPlay, .mediaPause, .mediaPlayPause,
-             .mediaNext, .mediaPrevious,
-             .mediaVolumeUp, .mediaVolumeDown:
-            // Media control via the receiver's system is limited on iOS.
-            // The command is surfaced in the UI for confirmation.
+             .mediaNext, .mediaPrevious:
             break
         case .presentationNext, .presentationPrevious,
              .presentationStart, .presentationEnd:
             break
-        case .keyboardShortcut, .macro, .none:
+        case .keyboardShortcut, .macro, .none, .lockScreen:
             break
         }
     }

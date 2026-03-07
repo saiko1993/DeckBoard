@@ -17,6 +17,7 @@ final class ButtonEditorViewModel: ObservableObject {
 
     @Published var shortcutKey: String = ""
     @Published var shortcutModifiers: [String] = []
+    @Published var shortcutName: String = ""
     @Published var iconURL: String = ""
 
     @Published var confirmBeforeExecute: Bool = false
@@ -26,6 +27,10 @@ final class ButtonEditorViewModel: ObservableObject {
 
     var isValid: Bool {
         !title.trimmed.isEmpty
+    }
+
+    var resolvedAction: ButtonAction {
+        resolveAction()
     }
 
     init() {}
@@ -60,9 +65,20 @@ final class ButtonEditorViewModel: ObservableObject {
         case .keyboardShortcut(let mods, let key):
             shortcutModifiers = mods
             shortcutKey = key
+        case .runShortcut(let name):
+            shortcutName = name
         default:
             break
         }
+    }
+
+    func autoFillFromApp(appID: String) {
+        guard let app = AppCatalog.app(withID: appID) else { return }
+        if title.trimmed.isEmpty {
+            title = app.name
+        }
+        icon = app.icon
+        colorHex = app.colorHex
     }
 
     func buildButton(id: UUID = UUID(), position: Int = 0) -> DeskButton {
@@ -105,6 +121,8 @@ final class ButtonEditorViewModel: ObservableObject {
             return textPayload.trimmed.isEmpty ? .none : .sendText(text: textPayload.trimmed)
         case .keyboardShortcut:
             return shortcutKey.trimmed.isEmpty ? .none : .keyboardShortcut(modifiers: shortcutModifiers, key: shortcutKey.trimmed)
+        case .runShortcut:
+            return shortcutName.trimmed.isEmpty ? .none : .runShortcut(name: shortcutName.trimmed)
         default:
             return selectedAction
         }

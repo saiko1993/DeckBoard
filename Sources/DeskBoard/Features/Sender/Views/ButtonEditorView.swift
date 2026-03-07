@@ -177,7 +177,12 @@ struct ButtonEditorView: View {
     private var actionSection: some View {
         Section("Action") {
             NavigationLink {
-                ActionPickerView(selectedAction: $viewModel.selectedAction)
+                ActionPickerView(
+                    selectedAction: $viewModel.selectedAction,
+                    onAutoFill: { appID in
+                        viewModel.autoFillFromApp(appID: appID)
+                    }
+                )
             } label: {
                 HStack {
                     Image(systemName: viewModel.selectedAction.systemImage)
@@ -210,6 +215,11 @@ struct ButtonEditorView: View {
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                 ModifierPicker(selected: $viewModel.shortcutModifiers)
+            }
+
+            if case .runShortcut = viewModel.selectedAction {
+                TextField("Shortcut Name", text: $viewModel.shortcutName)
+                    .autocorrectionDisabled()
             }
 
             Button {
@@ -302,7 +312,7 @@ struct ButtonEditorView: View {
     }
 
     private func testAction() {
-        let action = viewModel.selectedAction
+        let action = viewModel.resolvedAction
         Task {
             let result = await ActionEngine.shared.executeLocal(action: action)
             testResult = result.isSuccess ? "✓ OK" : "⚠ \(result.displayText)"
@@ -310,50 +320,187 @@ struct ButtonEditorView: View {
     }
 }
 
-private struct ActionPickerView: View {
+// MARK: - ActionPickerView
+
+struct ActionPickerView: View {
     @Binding var selectedAction: ButtonAction
+    var onAutoFill: ((String) -> Void)?
     @Environment(\.dismiss) private var dismiss
+    @State private var searchText: String = ""
 
     var body: some View {
         List {
-            ForEach(ButtonAction.ActionCategory.allCases, id: \.self) { category in
-                let actions = ButtonAction.allSimpleActions.filter { $0.category == category }
-                if !actions.isEmpty {
-                    Section(category.rawValue) {
-                        ForEach(actions, id: \.displayName) { action in
-                            Button {
-                                selectedAction = action
-                                dismiss()
-                            } label: {
-                                HStack {
-                                    Image(systemName: action.systemImage)
-                                        .foregroundStyle(.blue)
-                                        .frame(width: 28)
-                                    Text(action.displayName)
-                                        .foregroundStyle(.primary)
-                                    Spacer()
-                                    if action.displayName == selectedAction.displayName {
-                                        Image(systemName: "checkmark")
-                                            .foregroundStyle(.blue)
-                                    }
-                                }
-                            }
-                        }
+            if searchText.isEmpty {
+                quickActionsSection
+                mediaSection
+                deviceSection
+                appsSection
+                shortcutsSection
+                presentationSection
+                customSection
+            } else {
+                filteredResults
+            }
+        }
+        .searchable(text: $searchText, prompt: "Search actions & apps")
+        .navigationTitle("Choose Action")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder
+    private var quickActionsSection: some View {
+        Section {
+            actionRow(.none, "No Action")
+        }
+    }
+
+    @ViewBuilder
+    private var mediaSection: some View {
+        Section("Media Controls") {
+            actionRow(.mediaPlayPause, nil)
+            actionRow(.mediaPlay, nil)
+            actionRow(.mediaPause, nil)
+            actionRow(.mediaNext, nil)
+            actionRow(.mediaPrevious, nil)
+            actionRow(.mediaVolumeUp, nil)
+            actionRow(.mediaVolumeDown, nil)
+            actionRow(.mediaMute, nil)
+        }
+    }
+
+    @ViewBuilder
+    private var deviceSection: some View {
+        Section("Device Controls") {
+            actionRow(.brightnessUp, nil)
+            actionRow(.brightnessDown, nil)
+            actionRow(.lockScreen, nil)
+        }
+    }
+
+    @ViewBuilder
+    private var appsSection: some View {
+        Section("Open App") {
+            ForEach(AppCategory.allCases, id: \.self) { category in
+                let apps = AppCatalog.apps(for: category)
+                if !apps.isEmpty {
+                    NavigationLink {
+                        AppCategoryPickerView(
+                            category: category,
+                            apps: apps,
+                            selectedAction: $selectedAction,
+                            onAutoFill: onAutoFill
+                        )
+                    } label: {
+                        Label(category.rawValue, systemImage: category.systemImage)
                     }
                 }
             }
-
-            Section("Custom") {
-                actionButton(.openURL(url: ""), "Open URL")
-                actionButton(.sendText(text: ""), "Send Text")
-                actionButton(.openDeepLink(url: ""), "Open Deep Link")
-                actionButton(.keyboardShortcut(modifiers: [], key: ""), "Keyboard Shortcut")
-            }
         }
-        .navigationTitle("Choose Action")
     }
 
-    private func actionButton(_ action: ButtonAction, _ title: String) -> some View {
+    @ViewBuilder
+    private var shortcutsSection: some View {
+        Section("Shortcuts") {
+            Button {
+                selectedAction = .runShortcut(name: "")
+                dismiss()
+            } label: {
+                HStack {
+                    Image(systemName: "bolt.fill")
+                        .foregroundStyle(.blue)
+                        .frame(width: 28)
+                    Text("Run Siri Shortcut")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if case .runShortcut = selectedAction {
+                        Image(systemName: "checkmark").foregroundStyle(.blue)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var presentationSection: some View {
+        Section("Presentation") {
+            actionRow(.presentationNext, nil)
+            actionRow(.presentationPrevious, nil)
+            actionRow(.presentationStart, nil)
+            actionRow(.presentationEnd, nil)
+        }
+    }
+
+    @ViewBuilder
+    private var customSection: some View {
+        Section("Custom") {
+            customActionButton(.openURL(url: ""), "Open URL")
+            customActionButton(.sendText(text: ""), "Send Text")
+            customActionButton(.openDeepLink(url: ""), "Open Deep Link")
+            customActionButton(.keyboardShortcut(modifiers: [], key: ""), "Keyboard Shortcut")
+        }
+    }
+
+    @ViewBuilder
+    private var filteredResults: some View {
+        let matchingActions = ButtonAction.allSimpleActions.filter {
+            $0.displayName.localizedStandardContains(searchText)
+        }
+        let matchingApps = AppCatalog.search(searchText)
+
+        if !matchingActions.isEmpty {
+            Section("Actions") {
+                ForEach(matchingActions, id: \.displayName) { action in
+                    actionRow(action, nil)
+                }
+            }
+        }
+
+        if !matchingApps.isEmpty {
+            Section("Apps") {
+                ForEach(matchingApps) { app in
+                    appRow(app)
+                }
+            }
+        }
+
+        if matchingActions.isEmpty && matchingApps.isEmpty {
+            Section {
+                VStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                    Text("No results for \"\(searchText)\"")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .listRowBackground(Color.clear)
+            }
+        }
+    }
+
+    private func actionRow(_ action: ButtonAction, _ customTitle: String?) -> some View {
+        Button {
+            selectedAction = action
+            dismiss()
+        } label: {
+            HStack {
+                Image(systemName: action.systemImage)
+                    .foregroundStyle(.blue)
+                    .frame(width: 28)
+                Text(customTitle ?? action.displayName)
+                    .foregroundStyle(.primary)
+                Spacer()
+                if action.displayName == selectedAction.displayName {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.blue)
+                }
+            }
+        }
+    }
+
+    private func customActionButton(_ action: ButtonAction, _ title: String) -> some View {
         Button {
             selectedAction = action
             dismiss()
@@ -366,7 +513,83 @@ private struct ActionPickerView: View {
             }
         }
     }
+
+    private func appRow(_ app: AppShortcut) -> some View {
+        Button {
+            selectedAction = .openApp(appID: app.id)
+            onAutoFill?(app.id)
+            dismiss()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: app.icon)
+                    .font(.body)
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color(hex: app.colorHex) ?? .blue)
+                    )
+                Text(app.name)
+                    .foregroundStyle(.primary)
+                Spacer()
+                if case .openApp(let id) = selectedAction, id == app.id {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.blue)
+                }
+            }
+        }
+    }
 }
+
+// MARK: - AppCategoryPickerView
+
+private struct AppCategoryPickerView: View {
+    let category: AppCategory
+    let apps: [AppShortcut]
+    @Binding var selectedAction: ButtonAction
+    var onAutoFill: ((String) -> Void)?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            ForEach(apps) { app in
+                Button {
+                    selectedAction = .openApp(appID: app.id)
+                    onAutoFill?(app.id)
+                    dismiss()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: app.icon)
+                            .font(.body)
+                            .foregroundStyle(.white)
+                            .frame(width: 36, height: 36)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(Color(hex: app.colorHex) ?? .blue)
+                            )
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(app.name)
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                            Text(app.urlScheme)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if case .openApp(let id) = selectedAction, id == app.id {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(category.rawValue)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - ModifierPicker
 
 private struct ModifierPicker: View {
     @Binding var selected: [String]

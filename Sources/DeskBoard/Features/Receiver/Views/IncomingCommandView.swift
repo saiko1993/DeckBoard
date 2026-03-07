@@ -83,6 +83,9 @@ struct IncomingCommandView: View {
         case .keyboard:     return .orange
         case .macro:        return .indigo
         case .general:      return .blue
+        case .apps:         return .green
+        case .device:       return .teal
+        case .shortcuts:    return .pink
         }
     }
 }
