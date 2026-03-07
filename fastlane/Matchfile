@@ -5,7 +5,7 @@ git_url ENV["MATCH_GIT_URL"]
 storage_mode "git"
 
 # App identifier
-app_identifier "com.internalcomm.app"
+app_identifier "com.deskboard.app"
 
 # Apple ID
 username ENV["APPLE_ID"]

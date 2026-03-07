@@ -1,22 +1,135 @@
-# Welcome 
-## Project info
+# DeskBoard — iOS / iPadOS Shortcut Dashboard
 
-This is a native cross-platform mobile app created with [Rork](https://rork.com)
+A native **Apple ecosystem app** that turns your iPhone into a customizable shortcut dashboard / control deck, allowing it to control another iPhone, iPad, or Mac over your local Wi-Fi network.
 
-**Platform**: Native iOS & Android app, exportable to web
-**Framework**: Expo Router + React Native
+> This project is managed with [Rork](https://rork.com). Changes made via Rork will be committed automatically to this GitHub repo.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your native mobile application.
+## ✨ Feature Overview
 
-### **Use Rork**
+| Feature | Description |
+|---|---|
+| 🎛 **Dashboard Grid** | Grid of large, customizable shortcut buttons with icons, colors, and titles |
+| 📱 **Multiple Pages** | Organize buttons into multiple pages within each dashboard |
+| 📡 **Local Networking** | MultipeerConnectivity for fast, private, LAN-only communication |
+| 🔗 **Auto Discovery** | Automatically find nearby devices on the same Wi-Fi network |
+| 🔒 **Secure Pairing** | Approval-based pairing with trusted device list |
+| 📷 **QR Code Pairing** | Pair instantly by scanning a QR code |
+| 🔢 **Pairing Code** | Display a 6-digit code for manual pairing |
+| ⚡ **Actions** | Media control, presentation slides, URLs, text snippets, keyboard shortcuts |
+| 📲 **Haptic Feedback** | Optional haptic feedback on button press |
+| 🌙 **Dark / Light / System** | Full theme support |
+| 📤 **Import / Export** | Export dashboards as JSON for backup or sharing |
+| 🎯 **Sender & Receiver modes** | Each device chooses its role independently |
 
-Simply visit [rork.com](https://rork.com) and prompt to build your app with AI.
+---
 
-Changes made via Rork will be committed automatically to this GitHub repo.
+## 🏗 Architecture
 
-Whenever you make a change in your local code editor and push it to GitHub, it will be also reflected in Rork.
+```
+Sources/DeskBoard/
+├── App/                        # Entry point, AppDelegate, AppState, RootView
+├── Core/
+│   ├── Models/                 # Dashboard, DeskButton, ButtonAction, CommandMessage, PairedDevice
+│   ├── Networking/             # PeerSession (MultipeerConnectivity), CommandEncoder
+│   ├── Storage/                # DashboardStore (UserDefaults), TrustedDeviceStore (Keychain)
+│   ├── Utilities/              # HapticManager, AppConfiguration
+│   └── Extensions/             # Color+hex, String, Date, View extensions
+└── Features/
+    ├── Onboarding/             # Role selection + welcome screens
+    ├── Sender/                 # Dashboard grid, button editor, page picker
+    ├── Receiver/               # Incoming command view, permission settings
+    ├── Pairing/                # Nearby devices, QR code, pairing code
+    └── Settings/               # Device name, role, theme, trusted devices
+```
+
+**Design patterns:**
+- **MVVM** — All ViewModels with `@Published` + `Combine`
+- **@MainActor** — All ViewModels isolated to the main actor
+- **SwiftUI** — Fully declarative UI targeting iOS 16+
+- **EnvironmentObject** — AppState shared across the entire app
+
+---
+
+## 📡 Connectivity
+
+DeskBoard uses **MultipeerConnectivity** (Apple's peer-to-peer framework) for local network communication:
+
+- Automatic peer discovery using Bonjour service type `_deskboard-v1._tcp`
+- Encrypted sessions (`MCEncryptionRequired`)
+- No internet or cloud required
+
+---
+
+## ⚡ Supported Actions
+
+| Category | Actions |
+|---|---|
+| **Media** | Play, Pause, Play/Pause, Next Track, Previous Track, Volume Up, Volume Down |
+| **Presentation** | Next Slide, Previous Slide, Start, End |
+| **General** | Open URL, Send Text, Open Deep Link |
+| **Keyboard** | Map keyboard shortcuts |
+| **Macro** | Chain multiple actions together |
+
+---
+
+## 📦 Dependencies
+
+| Package | Purpose |
+|---|---|
+| [KeychainAccess](https://github.com/kishikawakatsumi/KeychainAccess) | Secure storage for trusted device list |
+
+System frameworks: `MultipeerConnectivity`, `CoreImage` (QR generation), `UIKit`
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- macOS 13+ with **Xcode 15+**
+- [Homebrew](https://brew.sh)
+- Apple Developer account
+
+### 1. Bootstrap
+
+```bash
+bash scripts/setup.sh
+```
+
+### 2. Configure
+
+```bash
+# Fill in .env with your Apple Developer credentials
+APPLE_ID=you@email.com
+TEAM_ID=XXXXXXXXXX
+```
+
+### 3. Build & Run
+
+Open `DeskBoard.xcodeproj` in Xcode, select your device/simulator, and press **Run (⌘R)**.
+
+Or build from the command line:
+
+```bash
+bundle exec fastlane generate    # Generate Xcode project
+bundle exec fastlane test        # Run unit tests
+bundle exec fastlane build_debug # Build Debug IPA
+```
+
+---
+
+## 🧪 Tests
+
+```bash
+bundle exec fastlane test
+```
+
+Test coverage:
+- `DashboardModelTests` — Dashboard, Page, Button, Color extension, SampleData
+- `CommandMessageTests` — Round-trip encoding for all command types
+- `ButtonActionTests` — Action display names, system images, categories, Codable, PairedDevice, ConnectionState
 
 ### **Use your preferred code editor**
 
