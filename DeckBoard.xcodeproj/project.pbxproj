@@ -48,6 +48,8 @@
 		F2E8331851FB2AF32E276771 /* RoleSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F03BD25416330C6A4DEB3FB /* RoleSelectionView.swift */; };
 		FCA657347604828E2E2BDB0D /* SenderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE11EF6F39695B74691DB97E /* SenderViewModel.swift */; };
 		FDEE9A21BC7A542881743CB9 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17858DB5CE57CD1585C6EF2D /* Extensions.swift */; };
+		A1B2C3D4E5F60001A1B2C3D4 /* FullscreenDeckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60002A1B2C3D4 /* FullscreenDeckView.swift */; };
+		A1B2C3D4E5F60003A1B2C3D4 /* VolumeKnobView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60004A1B2C3D4 /* VolumeKnobView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -105,6 +107,8 @@
 		F3E3E39FE27D53F19B83025F /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
 		FC7D863184099BF31F17A78A /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		FD0308FBCFFF96E5FDEA8C4C /* SenderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SenderView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60002A1B2C3D4 /* FullscreenDeckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenDeckView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60004A1B2C3D4 /* VolumeKnobView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeKnobView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -171,6 +175,8 @@
 				EEC963098C226C38B799C6F5 /* DeskButtonView.swift */,
 				1BB991CEF5902EABB580F9E6 /* PagePickerView.swift */,
 				FD0308FBCFFF96E5FDEA8C4C /* SenderView.swift */,
+				A1B2C3D4E5F60002A1B2C3D4 /* FullscreenDeckView.swift */,
+				A1B2C3D4E5F60004A1B2C3D4 /* VolumeKnobView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -530,6 +536,8 @@
 				AA0266210DEBDDD8E421C887 /* DeskButtonView.swift in Sources */,
 				D0C4EDF251ECE1149D76DE1D /* PagePickerView.swift in Sources */,
 				C5FEE63A974D3CB911D90435 /* SenderView.swift in Sources */,
+				A1B2C3D4E5F60001A1B2C3D4 /* FullscreenDeckView.swift in Sources */,
+				A1B2C3D4E5F60003A1B2C3D4 /* VolumeKnobView.swift in Sources */,
 				D4C3943D4BFD2DA9135842B1 /* SettingsViewModel.swift in Sources */,
 				57D5D4CB308E76D6F3672BCE /* SettingsView.swift in Sources */,
 			);
