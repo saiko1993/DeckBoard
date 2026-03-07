@@ -1,0 +1,99 @@
+/* General */
+"app.name" = "DeskBoard";
+"ok" = "OK";
+"cancel" = "Cancel";
+"save" = "Save";
+"delete" = "Delete";
+"edit" = "Edit";
+"done" = "Done";
+"back" = "Back";
+"close" = "Close";
+"retry" = "Retry";
+"loading" = "Loading…";
+
+/* Authentication */
+"auth.sign_in" = "Sign In";
+"auth.sign_out" = "Sign Out";
+"auth.username" = "Username";
+"auth.password" = "Password";
+"auth.username_placeholder" = "Enter your username";
+"auth.password_placeholder" = "Enter your password";
+"auth.sign_in_tagline" = "Connect with your team";
+"auth.empty_credentials" = "Please enter your username and password.";
+"auth.invalid_credentials" = "Invalid username or password. Please try again.";
+"auth.sign_out_confirmation" = "Are you sure you want to sign out?";
+
+/* Messaging */
+"messaging.title" = "Messages";
+"messaging.empty_title" = "No Messages";
+"messaging.empty_description" = "Start a conversation with a colleague";
+"messaging.search_placeholder" = "Search messages";
+"messaging.new_conversation" = "New Conversation";
+"messaging.message_placeholder" = "Message";
+"messaging.load_earlier" = "Load earlier messages";
+"messaging.message_deleted" = "This message was deleted";
+"messaging.today" = "Today";
+"messaging.yesterday" = "Yesterday";
+"messaging.typing" = "%@ is typing…";
+"messaging.multiple_typing" = "Several people are typing…";
+
+/* Calls */
+"calls.title" = "Calls";
+"calls.empty_title" = "No Call History";
+"calls.empty_description" = "Your call history will appear here";
+"calls.audio_call" = "Audio Call";
+"calls.video_call" = "Video Call";
+"calls.end_call" = "End Call";
+"calls.mute" = "Mute";
+"calls.unmute" = "Unmute";
+"calls.hold" = "Hold";
+"calls.resume" = "Resume";
+"calls.speaker" = "Speaker";
+"calls.add_participant" = "Add";
+"calls.keypad" = "Keypad";
+"calls.active" = "Active Call";
+"calls.return" = "Tap to return";
+"calls.ringing" = "Ringing…";
+"calls.connecting" = "Connecting…";
+
+/* Contacts */
+"contacts.title" = "Contacts";
+"contacts.empty_title" = "No Contacts";
+"contacts.empty_description" = "No colleagues found";
+"contacts.search_placeholder" = "Search contacts";
+"contacts.extension" = "Ext. %@";
+"contacts.message_action" = "Message";
+"contacts.audio_action" = "Audio Call";
+"contacts.video_action" = "Video Call";
+
+/* Settings */
+"settings.title" = "Settings";
+"settings.profile" = "Profile";
+"settings.status" = "Status";
+"settings.notifications" = "Notifications";
+"settings.appearance" = "Appearance";
+"settings.about" = "About";
+"settings.version" = "Version";
+"settings.build" = "Build";
+"settings.privacy_policy" = "Privacy Policy";
+"settings.terms" = "Terms of Service";
+"settings.push_notifications" = "Push Notifications";
+"settings.notification_settings" = "Notification Settings";
+"settings.theme" = "Theme";
+"settings.theme_system" = "System";
+"settings.theme_light" = "Light";
+"settings.theme_dark" = "Dark";
+
+/* Status */
+"status.online" = "Online";
+"status.away" = "Away";
+"status.busy" = "Busy";
+"status.do_not_disturb" = "Do Not Disturb";
+"status.offline" = "Offline";
+
+/* Errors */
+"error.title" = "Error";
+"error.no_connection" = "No internet connection. Please check your network settings.";
+"error.timeout" = "Request timed out. Please check your connection.";
+"error.unauthorized" = "Authentication required. Please sign in again.";
+"error.generic" = "An unexpected error occurred. Please try again.";

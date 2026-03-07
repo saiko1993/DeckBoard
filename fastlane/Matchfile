@@ -1,0 +1,17 @@
+# Git URL for storing certificates and profiles
+git_url ENV["MATCH_GIT_URL"]
+
+# Storage type: git, google_cloud, s3
+storage_mode "git"
+
+# App identifier
+app_identifier "com.internalcomm.app"
+
+# Apple ID
+username ENV["APPLE_ID"]
+
+# Team ID
+team_id ENV["TEAM_ID"]
+
+# Branch name in the certificates repo
+branch "main"
