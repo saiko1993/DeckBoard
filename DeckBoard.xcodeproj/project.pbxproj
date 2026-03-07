@@ -556,6 +556,7 @@
 			);
 			name = "Generate App Icons";
 			outputPaths = (
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;

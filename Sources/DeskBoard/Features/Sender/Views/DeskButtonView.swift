@@ -8,11 +8,6 @@ struct DeskButtonView: View {
     let onDelete: () -> Void
 
     @State private var isPressed = false
-    @ObservedObject private var engine = ActionEngine.shared
-
-    private var executionState: ButtonExecutionState {
-        engine.stateFor(button.id)
-    }
 
     var body: some View {
         Button {
@@ -35,9 +30,6 @@ struct DeskButtonView: View {
             if isEditMode {
                 editOverlay
             }
-        }
-        .overlay(alignment: .bottomTrailing) {
-            statusIndicator
         }
         .contextMenu {
             contextMenuContent
@@ -97,38 +89,6 @@ struct DeskButtonView: View {
                 .fill(button.color)
                 .shadow(color: button.color.opacity(0.4), radius: 6, y: 3)
         )
-    }
-
-    @ViewBuilder
-    private var statusIndicator: some View {
-        if button.config.showStatusIndicator {
-            switch executionState {
-            case .running:
-                ProgressView()
-                    .scaleEffect(0.5)
-                    .tint(.white)
-                    .padding(4)
-            case .success:
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.green)
-                    .padding(4)
-                    .transition(.scale.combined(with: .opacity))
-            case .failed:
-                Image(systemName: "exclamationmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.red)
-                    .padding(4)
-                    .transition(.scale.combined(with: .opacity))
-            case .cooldown:
-                Image(systemName: "clock.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
-                    .padding(4)
-            default:
-                EmptyView()
-            }
-        }
     }
 
     private var editOverlay: some View {

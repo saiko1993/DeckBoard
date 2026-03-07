@@ -117,7 +117,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         adv.startAdvertisingPeer()
         advertiser = adv
         if !isConnected {
-            publishOnMain { self.connectionState = .searching }
+            updateOnMain { self.connectionState = .searching }
         }
     }
 
@@ -143,7 +143,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         brw.startBrowsingForPeers()
         browser = brw
         if !isConnected {
-            publishOnMain { self.connectionState = .searching }
+            updateOnMain { self.connectionState = .searching }
         }
     }
 
@@ -157,7 +157,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         browser?.stopBrowsingForPeers()
         browser?.delegate = nil
         browser = nil
-        publishOnMain { self.discoveredPeers = [] }
+        updateOnMain { self.discoveredPeers = [] }
     }
 
     func startAllServices() {
@@ -176,7 +176,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         stopBrowsingInternal()
         session?.disconnect()
         sessionLock.unlock()
-        publishOnMain {
+        updateOnMain {
             self.connectionState = .idle
             self.connectedPeerNames = []
             self.discoveredPeers = []
@@ -196,7 +196,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         pendingInvitePeers.insert(peer.id)
         browser?.invitePeer(peer.peerID, to: session, withContext: nil, timeout: 30)
         sessionLock.unlock()
-        publishOnMain { self.connectionState = .pairing }
+        updateOnMain { self.connectionState = .pairing }
     }
 
     func acceptPairing() {
@@ -205,16 +205,19 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             sessionLock.unlock()
             return
         }
-        handler(true, session)
+        let h = handler
+        let s = session
         pendingInvitationHandler = nil
         sessionLock.unlock()
-        publishOnMain { self.incomingPairingRequest = nil }
+        h(true, s)
+        updateOnMain { self.incomingPairingRequest = nil }
     }
 
     func rejectPairing() {
-        pendingInvitationHandler?(false, nil)
+        let handler = pendingInvitationHandler
         pendingInvitationHandler = nil
-        publishOnMain { self.incomingPairingRequest = nil }
+        handler?(false, nil)
+        updateOnMain { self.incomingPairingRequest = nil }
     }
 
     func disconnect() {
@@ -227,7 +230,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         stopBrowsingInternal()
         session?.disconnect()
         sessionLock.unlock()
-        publishOnMain {
+        updateOnMain {
             self.connectionState = .disconnected
             self.connectedPeerNames = []
         }
@@ -293,8 +296,9 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         let timer = DispatchSource.makeTimerSource(queue: timerQueue)
         timer.schedule(deadline: .now() + delay)
         timer.setEventHandler { [weak self] in
+            guard let strongSelf = self else { return }
             DispatchQueue.main.async {
-                self?.attemptReconnect()
+                strongSelf.attemptReconnect()
             }
         }
         timer.resume()
@@ -348,17 +352,19 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         stopHeartbeatTimer()
         stopStaleCheckTimer()
 
+        let deviceName = currentDeviceName
+
         let hbTimer = DispatchSource.makeTimerSource(queue: timerQueue)
         hbTimer.schedule(deadline: .now() + 8.0, repeating: 8.0, leeway: .seconds(1))
         hbTimer.setEventHandler { [weak self] in
+            guard let strongSelf = self else { return }
             DispatchQueue.main.async {
-                guard let self else { return }
-                if self.isConnected {
-                    let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: self.currentDeviceName)
-                    self.send(command: msg)
-                    self.lastHeartbeatSentTime = Date()
+                if strongSelf.isConnected {
+                    let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: deviceName)
+                    strongSelf.send(command: msg)
+                    strongSelf.lastHeartbeatSentTime = Date()
                 } else {
-                    self.onConnectionLost()
+                    strongSelf.onConnectionLost()
                 }
             }
         }
@@ -368,12 +374,12 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         let scTimer = DispatchSource.makeTimerSource(queue: timerQueue)
         scTimer.schedule(deadline: .now() + 25.0, repeating: 15.0, leeway: .seconds(2))
         scTimer.setEventHandler { [weak self] in
+            guard let strongSelf = self else { return }
             DispatchQueue.main.async {
-                guard let self else { return }
-                guard self.isConnected else { return }
-                let elapsed = Date().timeIntervalSince(self.lastDataReceivedTime)
+                guard strongSelf.isConnected else { return }
+                let elapsed = Date().timeIntervalSince(strongSelf.lastDataReceivedTime)
                 if elapsed > 35.0 {
-                    self.handleStaleConnection()
+                    strongSelf.handleStaleConnection()
                 }
             }
         }
@@ -387,7 +393,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         session?.disconnect()
         sessionLock.unlock()
 
-        publishOnMain {
+        updateOnMain {
             self.connectedPeerNames = []
             self.connectionState = .disconnected
         }
@@ -422,16 +428,16 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     func send(command: CommandMessage) {
         sessionLock.lock()
-        guard let session, !session.connectedPeers.isEmpty else {
+        guard let sess = session, !sess.connectedPeers.isEmpty else {
             sessionLock.unlock()
             return
         }
-        let peers = session.connectedPeers
+        let peers = sess.connectedPeers
         sessionLock.unlock()
 
         do {
             let data = try encoder.encode(command)
-            try session.send(data, toPeers: peers, with: .reliable)
+            try sess.send(data, toPeers: peers, with: .reliable)
         } catch {
             // Silently handle - stale check will catch dead connections
         }
@@ -483,7 +489,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         }
     }
 
-    private func publishOnMain(_ block: @escaping @Sendable () -> Void) {
+    private func updateOnMain(_ block: @escaping @Sendable () -> Void) {
         if Thread.isMainThread {
             block()
         } else {
@@ -596,14 +602,16 @@ extension PeerSession: MCNearbyServiceAdvertiserDelegate {
                     didReceiveInvitationFromPeer peerID: MCPeerID,
                     withContext context: Data?,
                     invitationHandler: @escaping (Bool, MCSession?) -> Void) {
+        let peerDisplayName = peerID.displayName
+        let capturedPeerID = peerID
         DispatchQueue.main.async { [weak self] in
             guard let self else {
                 invitationHandler(false, nil)
                 return
             }
 
-            let isTrusted = TrustedDeviceStore.shared.isTrusted(id: peerID.displayName)
-            let wasRecentlyConnected = peerID.displayName == self.lastConnectedPeerName
+            let isTrusted = TrustedDeviceStore.shared.isTrusted(id: peerDisplayName)
+            let wasRecentlyConnected = peerDisplayName == self.lastConnectedPeerName
 
             if isTrusted || wasRecentlyConnected {
                 self.sessionLock.lock()
@@ -613,7 +621,7 @@ extension PeerSession: MCNearbyServiceAdvertiserDelegate {
                 return
             }
 
-            if !self.shouldInitiateConnection(to: peerID) {
+            if !self.shouldInitiateConnection(to: capturedPeerID) {
                 self.sessionLock.lock()
                 let sess = self.session
                 self.sessionLock.unlock()
@@ -622,8 +630,8 @@ extension PeerSession: MCNearbyServiceAdvertiserDelegate {
             }
 
             let request = IncomingPairingRequest(
-                peerID: peerID,
-                deviceName: peerID.displayName,
+                peerID: capturedPeerID,
+                deviceName: peerDisplayName,
                 deviceRole: DeviceRole.sender.rawValue
             )
             self.pendingInvitationHandler = invitationHandler

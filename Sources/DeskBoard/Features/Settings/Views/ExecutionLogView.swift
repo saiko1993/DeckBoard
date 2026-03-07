@@ -1,11 +1,11 @@
 import SwiftUI
 
 struct ExecutionLogView: View {
-    @StateObject private var engine = ActionEngine.shared
+    @State private var logs: [ExecutionLog] = []
 
     var body: some View {
         List {
-            if engine.executionLogs.isEmpty {
+            if logs.isEmpty {
                 Section {
                     VStack(spacing: 12) {
                         Image(systemName: "list.bullet.rectangle")
@@ -20,7 +20,7 @@ struct ExecutionLogView: View {
                     .listRowBackground(Color.clear)
                 }
             } else {
-                ForEach(engine.executionLogs) { log in
+                ForEach(logs) { log in
                     LogEntryRow(log: log)
                 }
             }
@@ -30,10 +30,14 @@ struct ExecutionLogView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Clear") {
-                    engine.clearLogs()
+                    ExecutionLogStore.shared.clear()
+                    logs = []
                 }
-                .disabled(engine.executionLogs.isEmpty)
+                .disabled(logs.isEmpty)
             }
+        }
+        .onAppear {
+            logs = ExecutionLogStore.shared.load()
         }
     }
 }
