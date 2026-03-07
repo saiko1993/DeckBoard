@@ -56,6 +56,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private var isReconnecting: Bool = false
     private var pendingInvitePeers: Set<String> = []
     private var isInForeground: Bool = true
+    private var isServicesRunning: Bool = false
+    private var isEnteringForeground: Bool = false
 
     private let timerQueue = DispatchQueue(label: "com.deskboard.peersession.timers", qos: .userInitiated)
     private let sessionLock = NSLock()
@@ -216,13 +218,20 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     func startAllServices() {
         guard currentRole != .unset, !currentDeviceName.isEmpty else { return }
+        sessionLock.lock()
+        let alreadyRunning = advertiser != nil && browser != nil
+        sessionLock.unlock()
+        guard !alreadyRunning else { return }
         startAdvertising()
         startBrowsing()
+        isServicesRunning = true
     }
 
     func stopAll() {
         autoReconnectEnabled = false
         isReconnecting = false
+        isServicesRunning = false
+        isEnteringForeground = false
         pendingInvitePeers = []
         cancelAllTimers()
         sessionLock.lock()
@@ -277,6 +286,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     func disconnect() {
         autoReconnectEnabled = false
         isReconnecting = false
+        isServicesRunning = false
+        isEnteringForeground = false
         pendingInvitePeers = []
         cancelAllTimers()
         sessionLock.lock()
@@ -384,6 +395,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
         if reconnectAttempts % 10 == 0 {
             rebuildSession()
+            isServicesRunning = false
         }
 
         startAllServices()
@@ -409,6 +421,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     private func startHeartbeat() {
         guard isInForeground else { return }
+        if heartbeatTimer != nil && staleCheckTimer != nil { return }
         stopHeartbeatTimer()
         stopStaleCheckTimer()
 
@@ -465,6 +478,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private func onConnectionLost() {
         stopHeartbeatTimer()
         stopStaleCheckTimer()
+        isServicesRunning = false
         if autoReconnectEnabled && isInForeground {
             reconnectAttempts = 0
             pendingInvitePeers = []
@@ -527,6 +541,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     func enterBackground() {
         isInForeground = false
+        isServicesRunning = false
+        isEnteringForeground = false
         if isConnected {
             let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: currentDeviceName)
             send(command: msg)
@@ -537,6 +553,11 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     func enterForeground() {
         isInForeground = true
         guard autoReconnectEnabled, currentRole != .unset else { return }
+        guard !isEnteringForeground else {
+            peerLog.info("LIFECYCLE-001 enterForeground already in progress, skipping")
+            return
+        }
+        isEnteringForeground = true
 
         lastDataReceivedTime = Date()
 
@@ -557,9 +578,11 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             sessionLock.unlock()
 
             if !hasAdvertiser || !hasBrowser {
+                isServicesRunning = false
                 startAllServices()
             }
         }
+        isEnteringForeground = false
     }
 
     func attemptQuickReconnect() {
@@ -602,6 +625,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         guard currentRole != .unset, !currentDeviceName.isEmpty else { return }
         if !isConnected {
             rebuildSession()
+            isServicesRunning = false
         }
         startAllServices()
         if isConnected && isInForeground {
