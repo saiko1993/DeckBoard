@@ -67,6 +67,7 @@ struct DeskButton: Codable, Identifiable, Hashable, Sendable {
     var hapticFeedback: Bool
     var position: Int
     var isEnabled: Bool
+    var iconURL: String?
 
     init(
         id: UUID = UUID(),
@@ -76,7 +77,8 @@ struct DeskButton: Codable, Identifiable, Hashable, Sendable {
         action: ButtonAction = .none,
         hapticFeedback: Bool = true,
         position: Int = 0,
-        isEnabled: Bool = true
+        isEnabled: Bool = true,
+        iconURL: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -86,9 +88,15 @@ struct DeskButton: Codable, Identifiable, Hashable, Sendable {
         self.hapticFeedback = hapticFeedback
         self.position = position
         self.isEnabled = isEnabled
+        self.iconURL = iconURL
     }
 
     var color: Color {
         Color(hex: colorHex) ?? .blue
+    }
+
+    var resolvedIconURL: URL? {
+        guard let iconURL, !iconURL.isEmpty else { return nil }
+        return URL(string: iconURL)
     }
 }

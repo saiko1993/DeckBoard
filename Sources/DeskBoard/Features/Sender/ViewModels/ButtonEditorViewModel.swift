@@ -20,6 +20,7 @@ final class ButtonEditorViewModel: ObservableObject {
     // Keyboard shortcut
     @Published var shortcutKey: String = ""
     @Published var shortcutModifiers: [String] = []
+    @Published var iconURL: String = ""
 
     // MARK: - Validation
 
@@ -45,6 +46,7 @@ final class ButtonEditorViewModel: ObservableObject {
         hapticFeedback = button.hapticFeedback
         isEnabled = button.isEnabled
         selectedAction = button.action
+        iconURL = button.iconURL ?? ""
         extractPayloads(from: button.action)
     }
 
@@ -74,7 +76,8 @@ final class ButtonEditorViewModel: ObservableObject {
             action: resolvedAction,
             hapticFeedback: hapticFeedback,
             position: position,
-            isEnabled: isEnabled
+            isEnabled: isEnabled,
+            iconURL: iconURL.trimmed.isEmpty ? nil : iconURL.trimmed
         )
     }
 

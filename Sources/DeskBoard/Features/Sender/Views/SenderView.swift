@@ -32,6 +32,7 @@ private struct _SenderViewWrapper: View {
 private struct _SenderViewBody: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var viewModel: SenderViewModel
+    @State private var showFullscreen: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -39,6 +40,14 @@ private struct _SenderViewBody: View {
                 .navigationTitle(viewModel.activeDashboard?.name ?? "DeskBoard")
                 .navigationBarTitleDisplayMode(.large)
                 .toolbar { toolbar }
+        }
+        .fullScreenCover(isPresented: $showFullscreen) {
+            if let dashboard = viewModel.activeDashboard,
+               let page = viewModel.activePage {
+                FullscreenDeckView(dashboard: dashboard, page: page) { button in
+                    viewModel.tap(button: button)
+                }
+            }
         }
     }
 
@@ -91,6 +100,14 @@ private struct _SenderViewBody: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                showFullscreen = true
+            } label: {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+            }
+            .disabled(viewModel.activeDashboard == nil)
+        }
         ToolbarItem(placement: .topBarLeading) {
             Menu {
                 ForEach(appState.dashboards) { dashboard in

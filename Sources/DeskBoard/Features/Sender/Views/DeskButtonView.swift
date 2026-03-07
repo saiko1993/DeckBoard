@@ -40,10 +40,34 @@ struct DeskButtonView: View {
 
     private var buttonLabel: some View {
         VStack(spacing: 8) {
-            Image(systemName: button.icon)
-                .font(.title2.weight(.medium))
-                .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
+            if let url = button.resolvedIconURL {
+                Color.clear
+                    .frame(width: 32, height: 32)
+                    .overlay {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .allowsHitTesting(false)
+                            case .failure:
+                                Image(systemName: button.icon)
+                                    .font(.title2.weight(.medium))
+                                    .foregroundStyle(.white)
+                            default:
+                                ProgressView()
+                                    .tint(.white)
+                            }
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            } else {
+                Image(systemName: button.icon)
+                    .font(.title2.weight(.medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+            }
 
             Text(button.title)
                 .font(.caption.weight(.semibold))

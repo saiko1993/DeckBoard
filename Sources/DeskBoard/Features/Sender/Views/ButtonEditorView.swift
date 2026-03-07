@@ -146,6 +146,39 @@ struct ButtonEditorView: View {
                     }
                 }
 
+                // MARK: Icon URL
+                Section("Custom Icon URL") {
+                    TextField("https://example.com/icon.png", text: $viewModel.iconURL)
+                        .keyboardType(.URL)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                    if !viewModel.iconURL.trimmed.isEmpty, let url = URL(string: viewModel.iconURL.trimmed) {
+                        HStack {
+                            Spacer()
+                            Color.clear
+                                .frame(width: 48, height: 48)
+                                .overlay {
+                                    AsyncImage(url: url) { phase in
+                                        switch phase {
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                                .allowsHitTesting(false)
+                                        case .failure:
+                                            Image(systemName: "exclamationmark.triangle")
+                                                .foregroundStyle(.orange)
+                                        default:
+                                            ProgressView()
+                                        }
+                                    }
+                                }
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            Spacer()
+                        }
+                    }
+                }
+
                 // MARK: Options
                 Section("Options") {
                     Toggle("Haptic Feedback", isOn: $viewModel.hapticFeedback)
