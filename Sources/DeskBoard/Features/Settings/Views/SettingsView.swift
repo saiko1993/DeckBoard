@@ -49,20 +49,20 @@ private struct _SettingsViewBody: View {
                     Picker("Theme", selection: $viewModel.appTheme) {
                         ForEach(AppTheme.allCases, id: \.self) { Text($0.title).tag($0) }
                     }
-                    .onChange(of: viewModel.appTheme) { _, newValue in viewModel.saveTheme(newValue) }
+                    .onChange(of: viewModel.appTheme) { [weak viewModel] newValue in viewModel?.saveTheme(newValue) }
                 }
 
                 Section("Behaviour") {
                     Toggle(isOn: $viewModel.hapticEnabled) {
                         Label("Haptic Feedback", systemImage: "hand.tap.fill")
                     }
-                    .onChange(of: viewModel.hapticEnabled) { _, newValue in viewModel.saveHaptic(newValue) }
+                    .onChange(of: viewModel.hapticEnabled) { [weak viewModel] newValue in viewModel?.saveHaptic(newValue) }
 
                     if appState.deviceRole == .receiver {
                         Toggle(isOn: $viewModel.silentReceiver) {
                             Label("Silent Mode", systemImage: "bell.slash.fill")
                         }
-                        .onChange(of: viewModel.silentReceiver) { _, newValue in viewModel.saveSilentReceiver(newValue) }
+                        .onChange(of: viewModel.silentReceiver) { [weak viewModel] newValue in viewModel?.saveSilentReceiver(newValue) }
                     }
                 }
 
