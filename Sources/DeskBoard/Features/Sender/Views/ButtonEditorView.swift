@@ -139,7 +139,7 @@ struct ButtonEditorView: View {
                     if case .keyboardShortcut = viewModel.selectedAction {
                         TextField("Key (e.g. c, space, return)", text: $viewModel.shortcutKey)
                             .autocorrectionDisabled()
-                            .autocapitalization(.none)
+                            .textInputAutocapitalization(.never)
                         Text("Modifiers: \(viewModel.shortcutModifiers.isEmpty ? "None" : viewModel.shortcutModifiers.joined(separator: "+"))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
