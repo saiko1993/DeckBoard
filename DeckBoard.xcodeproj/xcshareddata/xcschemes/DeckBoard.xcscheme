@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "FA176E7EAD6ED6AA8759817D"
-               BuildableName = "DeskBoard.app"
-               BlueprintName = "DeskBoard"
-               ReferencedContainer = "container:DeskBoard.xcodeproj">
+               BuildableName = "DeckBoard.app"
+               BlueprintName = "DeckBoard"
+               ReferencedContainer = "container:DeckBoard.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,9 +29,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "BD584B0226D4B8C6C6C46071"
-               BuildableName = "DeskBoardTests.xctest"
-               BlueprintName = "DeskBoardTests"
-               ReferencedContainer = "container:DeskBoard.xcodeproj">
+               BuildableName = "DeckBoard.xctest"
+               BlueprintName = "DeckBoard"
+               ReferencedContainer = "container:DeckBoard.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -48,9 +48,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "BD584B0226D4B8C6C6C46071"
-               BuildableName = "DeskBoardTests.xctest"
-               BlueprintName = "DeskBoardTests"
-               ReferencedContainer = "container:DeskBoard.xcodeproj">
+               BuildableName = "DeckBoard.xctest"
+               BlueprintName = "DeckBoard"
+               ReferencedContainer = "container:DeckBoard.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -58,9 +58,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FA176E7EAD6ED6AA8759817D"
-            BuildableName = "DeskBoard.app"
-            BlueprintName = "DeskBoard"
-            ReferencedContainer = "container:DeskBoard.xcodeproj">
+            BuildableName = "DeckBoard.app"
+            BlueprintName = "DeckBoard"
+            ReferencedContainer = "container:DeckBoard.xcodeproj">
          </BuildableReference>
       </CodeCoverageTargets>
    </TestAction>
@@ -79,9 +79,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FA176E7EAD6ED6AA8759817D"
-            BuildableName = "DeskBoard.app"
-            BlueprintName = "DeskBoard"
-            ReferencedContainer = "container:DeskBoard.xcodeproj">
+            BuildableName = "DeckBoard.app"
+            BlueprintName = "DeckBoard"
+            ReferencedContainer = "container:DeckBoard.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -96,9 +96,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FA176E7EAD6ED6AA8759817D"
-            BuildableName = "DeskBoard.app"
-            BlueprintName = "DeskBoard"
-            ReferencedContainer = "container:DeskBoard.xcodeproj">
+            BuildableName = "DeckBoard.app"
+            BlueprintName = "DeckBoard"
+            ReferencedContainer = "container:DeckBoard.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
@@ -108,6 +108,6 @@
    <ArchiveAction
       buildConfiguration = "Release"
       revealArchiveInOrganizer = "YES"
-      customArchiveName = "DeskBoard">
+      customArchiveName = "DeckBoard">
    </ArchiveAction>
 </Scheme>
