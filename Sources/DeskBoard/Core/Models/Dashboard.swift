@@ -61,6 +61,7 @@ struct DashboardPage: Codable, Identifiable, Hashable, Sendable {
 struct DeskButton: Codable, Identifiable, Hashable, Sendable {
     var id: UUID
     var title: String
+    var subtitle: String?
     var icon: String
     var colorHex: String
     var action: ButtonAction
@@ -68,20 +69,24 @@ struct DeskButton: Codable, Identifiable, Hashable, Sendable {
     var position: Int
     var isEnabled: Bool
     var iconURL: String?
+    var config: ButtonConfig
 
     init(
         id: UUID = UUID(),
         title: String,
+        subtitle: String? = nil,
         icon: String = "star.fill",
         colorHex: String = "#007AFF",
         action: ButtonAction = .none,
         hapticFeedback: Bool = true,
         position: Int = 0,
         isEnabled: Bool = true,
-        iconURL: String? = nil
+        iconURL: String? = nil,
+        config: ButtonConfig = ButtonConfig()
     ) {
         self.id = id
         self.title = title
+        self.subtitle = subtitle
         self.icon = icon
         self.colorHex = colorHex
         self.action = action
@@ -89,6 +94,7 @@ struct DeskButton: Codable, Identifiable, Hashable, Sendable {
         self.position = position
         self.isEnabled = isEnabled
         self.iconURL = iconURL
+        self.config = config
     }
 
     var color: Color {

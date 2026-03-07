@@ -11,6 +11,8 @@ struct DashboardGridView: View {
     @State private var buttonToEdit: DeskButton?
     @State private var buttonToDelete: DeskButton?
     @State private var isEditMode = false
+    @State private var showColumnPicker = false
+    @State private var confirmAction: DeskButton?
 
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: 12), count: page.layoutColumns)
@@ -21,7 +23,7 @@ struct DashboardGridView: View {
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(page.buttons.sorted(by: { $0.position < $1.position })) { button in
                     DeskButtonView(button: button, isEditMode: isEditMode) {
-                        viewModel.tap(button: button)
+                        handleButtonTap(button)
                     } onEdit: {
                         buttonToEdit = button
                     } onDelete: {
@@ -29,7 +31,6 @@ struct DashboardGridView: View {
                     }
                 }
 
-                // Add button cell
                 AddButtonCell {
                     showAddButton = true
                 }
@@ -38,12 +39,54 @@ struct DashboardGridView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isEditMode ? "Done" : "Edit") {
-                    withAnimation(.spring(duration: 0.3)) {
-                        isEditMode.toggle()
+                Menu {
+                    Button(isEditMode ? "Done Editing" : "Edit Layout") {
+                        withAnimation(.spring(duration: 0.3)) {
+                            isEditMode.toggle()
+                        }
                     }
+
+                    Divider()
+
+                    Menu("Grid Columns") {
+                        ForEach(2...5, id: \.self) { count in
+                            Button {
+                                viewModel.setColumns(count, for: page, in: dashboard)
+                            } label: {
+                                HStack {
+                                    Text("\(count) Columns")
+                                    if page.layoutColumns == count {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    Button {
+                        viewModel.addPage(to: dashboard)
+                    } label: {
+                        Label("Add Page", systemImage: "plus.rectangle")
+                    }
+
+                    if dashboard.pages.count > 1 {
+                        Button {
+                            viewModel.duplicatePage(page, in: dashboard)
+                        } label: {
+                            Label("Duplicate Page", systemImage: "plus.rectangle.on.rectangle")
+                        }
+
+                        Button(role: .destructive) {
+                            viewModel.deletePage(page, from: dashboard)
+                        } label: {
+                            Label("Delete Page", systemImage: "trash")
+                        }
+                    }
+                } label: {
+                    Image(systemName: isEditMode ? "checkmark.circle.fill" : "ellipsis.circle")
                 }
-                .fontWeight(isEditMode ? .semibold : .regular)
             }
         }
         .sheet(isPresented: $showAddButton) {
@@ -70,10 +113,30 @@ struct DashboardGridView: View {
         } message: {
             Text("Are you sure you want to delete \"\(buttonToDelete?.title ?? "")\"?")
         }
+        .alert("Confirm Action", isPresented: Binding(
+            get: { confirmAction != nil },
+            set: { if !$0 { confirmAction = nil } }
+        )) {
+            Button("Execute") {
+                if let btn = confirmAction {
+                    viewModel.tap(button: btn)
+                }
+                confirmAction = nil
+            }
+            Button("Cancel", role: .cancel) { confirmAction = nil }
+        } message: {
+            Text("Execute \"\(confirmAction?.title ?? "")\"?")
+        }
+    }
+
+    private func handleButtonTap(_ button: DeskButton) {
+        if button.config.confirmBeforeExecute {
+            confirmAction = button
+        } else {
+            viewModel.tap(button: button)
+        }
     }
 }
-
-// MARK: - AddButtonCell
 
 private struct AddButtonCell: View {
     let action: () -> Void

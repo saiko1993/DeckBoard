@@ -23,6 +23,7 @@ private struct _SettingsViewWrapper: View {
 private struct _SettingsViewBody: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var viewModel: SettingsViewModel
+    @State private var showImportPicker = false
 
     var body: some View {
         NavigationStack {
@@ -46,23 +47,36 @@ private struct _SettingsViewBody: View {
                 }
 
                 Section("Appearance") {
-                    Picker("Theme", selection: $viewModel.appTheme) {
+                    Picker("Theme", selection: Binding(
+                        get: { viewModel.appTheme },
+                        set: { viewModel.saveTheme($0) }
+                    )) {
                         ForEach(AppTheme.allCases, id: \.self) { Text($0.title).tag($0) }
                     }
-                    .onChange(of: viewModel.appTheme) { [weak viewModel] newValue in viewModel?.saveTheme(newValue) }
                 }
 
                 Section("Behaviour") {
-                    Toggle(isOn: $viewModel.hapticEnabled) {
+                    Toggle(isOn: Binding(
+                        get: { viewModel.hapticEnabled },
+                        set: { viewModel.saveHaptic($0) }
+                    )) {
                         Label("Haptic Feedback", systemImage: "hand.tap.fill")
                     }
-                    .onChange(of: viewModel.hapticEnabled) { [weak viewModel] newValue in viewModel?.saveHaptic(newValue) }
 
                     if appState.deviceRole == .receiver {
-                        Toggle(isOn: $viewModel.silentReceiver) {
+                        Toggle(isOn: Binding(
+                            get: { viewModel.silentReceiver },
+                            set: { viewModel.saveSilentReceiver($0) }
+                        )) {
                             Label("Silent Mode", systemImage: "bell.slash.fill")
                         }
-                        .onChange(of: viewModel.silentReceiver) { [weak viewModel] newValue in viewModel?.saveSilentReceiver(newValue) }
+                    }
+
+                    Toggle(isOn: Binding(
+                        get: { viewModel.autoReconnect },
+                        set: { viewModel.saveAutoReconnect($0) }
+                    )) {
+                        Label("Auto Reconnect", systemImage: "arrow.triangle.2.circlepath")
                     }
                 }
 
@@ -71,6 +85,9 @@ private struct _SettingsViewBody: View {
                         HStack {
                             Label(dashboard.name, systemImage: dashboard.icon)
                             Spacer()
+                            Text("\(dashboard.pages.count) pages")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
                             Button {
                                 viewModel.exportDashboard(dashboard)
                             } label: {
@@ -79,6 +96,19 @@ private struct _SettingsViewBody: View {
                             .buttonStyle(.plain)
                         }
                     }
+
+                    Button {
+                        viewModel.exportAllDashboards()
+                    } label: {
+                        Label("Export All Dashboards", systemImage: "square.and.arrow.up.on.square")
+                    }
+
+                    Button {
+                        showImportPicker = true
+                    } label: {
+                        Label("Import Dashboards", systemImage: "square.and.arrow.down")
+                    }
+
                     Button(role: .destructive) {
                         viewModel.resetAllDashboards()
                     } label: {
@@ -105,6 +135,20 @@ private struct _SettingsViewBody: View {
                     }
                 }
 
+                Section("Debug") {
+                    NavigationLink {
+                        ExecutionLogView()
+                    } label: {
+                        Label("Execution History", systemImage: "list.bullet.rectangle")
+                    }
+
+                    NavigationLink {
+                        DiagnosticsView()
+                    } label: {
+                        Label("Diagnostics", systemImage: "wrench.and.screwdriver")
+                    }
+                }
+
                 Section("About") {
                     HStack {
                         Text("Version")
@@ -122,11 +166,21 @@ private struct _SettingsViewBody: View {
             .sheet(isPresented: $viewModel.showExportPicker) {
                 if let data = viewModel.exportData { ShareSheet(items: [data]) }
             }
+            .fileImporter(
+                isPresented: $showImportPicker,
+                allowedContentTypes: [.json],
+                allowsMultipleSelection: false
+            ) { result in
+                viewModel.handleImport(result)
+            }
+            .alert("Import Result", isPresented: $viewModel.showImportResult) {
+                Button("OK") {}
+            } message: {
+                Text(viewModel.importResultMessage)
+            }
         }
     }
 }
-
-// MARK: - Supporting Types
 
 private struct RoleChangeSheet: View {
     let onSelect: (DeviceRole) -> Void
@@ -161,15 +215,13 @@ private struct RoleChangeSheet: View {
     }
 }
 
-private struct ShareSheet: UIViewControllerRepresentable {
+struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
-
-// MARK: - ConnectionBanner (shared UI component)
 
 struct ConnectionBanner: View {
     let state: ConnectionState

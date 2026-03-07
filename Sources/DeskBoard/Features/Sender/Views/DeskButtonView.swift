@@ -8,6 +8,11 @@ struct DeskButtonView: View {
     let onDelete: () -> Void
 
     @State private var isPressed = false
+    @StateObject private var engine = ActionEngine.shared
+
+    private var executionState: ButtonExecutionState {
+        engine.stateFor(button.id)
+    }
 
     var body: some View {
         Button {
@@ -24,22 +29,23 @@ struct DeskButtonView: View {
             buttonLabel
         }
         .buttonStyle(.plain)
-        .scaleEffect(isPressed ? 0.94 : 1.0)
+        .scaleEffect(isPressed ? 0.92 : 1.0)
         .opacity(button.isEnabled ? 1.0 : 0.4)
         .overlay(alignment: .topTrailing) {
             if isEditMode {
                 editOverlay
             }
         }
+        .overlay(alignment: .bottomTrailing) {
+            statusIndicator
+        }
         .contextMenu {
             contextMenuContent
         }
     }
 
-    // MARK: - Button Label
-
     private var buttonLabel: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             if let url = button.resolvedIconURL {
                 Color.clear
                     .frame(width: 32, height: 32)
@@ -61,10 +67,10 @@ struct DeskButtonView: View {
                             }
                         }
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .clipShape(.rect(cornerRadius: 6))
             } else {
                 Image(systemName: button.icon)
-                    .font(.title2.weight(.medium))
+                    .font(.system(size: 22 * button.config.iconScale, weight: .medium))
                     .foregroundStyle(.white)
                     .frame(width: 32, height: 32)
             }
@@ -75,18 +81,55 @@ struct DeskButtonView: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.7)
+
+            if let subtitle = button.subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.system(size: 9))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .lineLimit(1)
+            }
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(1, contentMode: .fit)
-        .padding(12)
+        .padding(10)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: button.config.cornerRadius, style: .continuous)
                 .fill(button.color)
                 .shadow(color: button.color.opacity(0.4), radius: 6, y: 3)
         )
     }
 
-    // MARK: - Edit Mode Overlay
+    @ViewBuilder
+    private var statusIndicator: some View {
+        if button.config.showStatusIndicator {
+            switch executionState {
+            case .running:
+                ProgressView()
+                    .scaleEffect(0.5)
+                    .tint(.white)
+                    .padding(4)
+            case .success:
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+                    .padding(4)
+                    .transition(.scale.combined(with: .opacity))
+            case .failed:
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+                    .padding(4)
+                    .transition(.scale.combined(with: .opacity))
+            case .cooldown:
+                Image(systemName: "clock.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .padding(4)
+            default:
+                EmptyView()
+            }
+        }
+    }
 
     private var editOverlay: some View {
         HStack(spacing: 4) {
@@ -111,8 +154,6 @@ struct DeskButtonView: View {
         .padding(4)
     }
 
-    // MARK: - Context Menu
-
     @ViewBuilder
     private var contextMenuContent: some View {
         Button {
@@ -120,6 +161,14 @@ struct DeskButtonView: View {
         } label: {
             Label("Edit", systemImage: "pencil")
         }
+
+        Button {
+            onTap()
+        } label: {
+            Label("Execute", systemImage: "play.fill")
+        }
+
+        Divider()
 
         Button(role: .destructive) {
             onDelete()

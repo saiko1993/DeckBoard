@@ -8,7 +8,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        application.isIdleTimerDisabled = false
+        let role = AppConfiguration.deviceRole
+        if role == .sender || role == .receiver {
+            application.isIdleTimerDisabled = true
+        }
         return true
     }
 

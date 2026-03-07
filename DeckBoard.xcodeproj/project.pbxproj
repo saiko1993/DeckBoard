@@ -50,6 +50,16 @@
 		F2E8331851FB2AF32E276771 /* RoleSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F03BD25416330C6A4DEB3FB /* RoleSelectionView.swift */; };
 		FCA657347604828E2E2BDB0D /* SenderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE11EF6F39695B74691DB97E /* SenderViewModel.swift */; };
 		FDEE9A21BC7A542881743CB9 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17858DB5CE57CD1585C6EF2D /* Extensions.swift */; };
+		AA11BB22CC33DD440001 /* ActionPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD440002 /* ActionPayload.swift */; };
+		AA11BB22CC33DD440003 /* ButtonState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD440004 /* ButtonState.swift */; };
+		AA11BB22CC33DD440005 /* BackupFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD440006 /* BackupFormat.swift */; };
+		AA11BB22CC33DD440007 /* ExecutionLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD440008 /* ExecutionLog.swift */; };
+		AA11BB22CC33DD440009 /* ActionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44000A /* ActionEngine.swift */; };
+		AA11BB22CC33DD44000B /* BackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44000C /* BackupService.swift */; };
+		AA11BB22CC33DD44000D /* ExecutionLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44000E /* ExecutionLogStore.swift */; };
+		AA11BB22CC33DD44000F /* HTTPActionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD440010 /* HTTPActionService.swift */; };
+		AA11BB22CC33DD440011 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD440012 /* DiagnosticsView.swift */; };
+		AA11BB22CC33DD440013 /* ExecutionLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD440014 /* ExecutionLogView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -109,6 +119,16 @@
 		F3E3E39FE27D53F19B83025F /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
 		FC7D863184099BF31F17A78A /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		FD0308FBCFFF96E5FDEA8C4C /* SenderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SenderView.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD440002 /* ActionPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionPayload.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD440004 /* ButtonState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonState.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD440006 /* BackupFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupFormat.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD440008 /* ExecutionLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionLog.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD44000A /* ActionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionEngine.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD44000C /* BackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupService.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD44000E /* ExecutionLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionLogStore.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD440010 /* HTTPActionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPActionService.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD440012 /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD440014 /* ExecutionLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionLogView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -134,6 +154,8 @@
 		1123DD1DC7F3C7A7DF7A72AE /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				AA11BB22CC33DD440012 /* DiagnosticsView.swift */,
+				AA11BB22CC33DD440014 /* ExecutionLogView.swift */,
 				2B009A044BD49AF8C1298817 /* SettingsView.swift */,
 			);
 			path = Views;
@@ -147,12 +169,24 @@
 			path = Extensions;
 			sourceTree = "<group>";
 		};
+		AA11BB22CC33DD440015 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AA11BB22CC33DD44000A /* ActionEngine.swift */,
+				AA11BB22CC33DD44000C /* BackupService.swift */,
+				AA11BB22CC33DD44000E /* ExecutionLogStore.swift */,
+				AA11BB22CC33DD440010 /* HTTPActionService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		16EC398FEE823276D86C270F /* Core */ = {
 			isa = PBXGroup;
 			children = (
 				1634EE49CB85551DD886B608 /* Extensions */,
 				89B9F95FB6BEFEF5E0F9833E /* Models */,
 				59F61E9879A6A33998C5DBF2 /* Networking */,
+				AA11BB22CC33DD440015 /* Services */,
 				DA10D92DEDB0B310837C4628 /* Storage */,
 				BE0A0E64CE824821CC87BC98 /* Utilities */,
 			);
@@ -270,9 +304,13 @@
 		89B9F95FB6BEFEF5E0F9833E /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				AA11BB22CC33DD440002 /* ActionPayload.swift */,
+				AA11BB22CC33DD440006 /* BackupFormat.swift */,
 				6FC6710AAAD09805F86C870D /* ButtonAction.swift */,
+				AA11BB22CC33DD440004 /* ButtonState.swift */,
 				14B3A2F2DBBFD188449936D3 /* CommandMessage.swift */,
 				7244CC224F5F7498F3ECDA3B /* Dashboard.swift */,
+				AA11BB22CC33DD440008 /* ExecutionLog.swift */,
 				2EFD066E3243CDD000314374 /* PairedDevice.swift */,
 				F3E3E39FE27D53F19B83025F /* SampleData.swift */,
 			);
@@ -560,6 +598,16 @@
 				A1B2C3D4E5F60003A1B2C3D4 /* VolumeKnobView.swift in Sources */,
 				D4C3943D4BFD2DA9135842B1 /* SettingsViewModel.swift in Sources */,
 				57D5D4CB308E76D6F3672BCE /* SettingsView.swift in Sources */,
+				AA11BB22CC33DD440001 /* ActionPayload.swift in Sources */,
+				AA11BB22CC33DD440003 /* ButtonState.swift in Sources */,
+				AA11BB22CC33DD440005 /* BackupFormat.swift in Sources */,
+				AA11BB22CC33DD440007 /* ExecutionLog.swift in Sources */,
+				AA11BB22CC33DD440009 /* ActionEngine.swift in Sources */,
+				AA11BB22CC33DD44000B /* BackupService.swift in Sources */,
+				AA11BB22CC33DD44000D /* ExecutionLogStore.swift in Sources */,
+				AA11BB22CC33DD44000F /* HTTPActionService.swift in Sources */,
+				AA11BB22CC33DD440011 /* DiagnosticsView.swift in Sources */,
+				AA11BB22CC33DD440013 /* ExecutionLogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

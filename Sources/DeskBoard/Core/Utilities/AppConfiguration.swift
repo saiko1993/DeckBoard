@@ -16,6 +16,8 @@ enum AppConfiguration {
         static let onboardingDone = "com.deskboard.onboardingDone"
         static let hapticEnabled  = "com.deskboard.hapticEnabled"
         static let silentReceiver = "com.deskboard.silentReceiver"
+        static let autoReconnect = "com.deskboard.autoReconnect"
+        static let defaultColumns = "com.deskboard.defaultColumns"
     }
 
     // MARK: - Defaults
@@ -47,6 +49,16 @@ enum AppConfiguration {
     static var silentReceiver: Bool {
         get { UserDefaults.standard.bool(forKey: Keys.silentReceiver) }
         set { UserDefaults.standard.set(newValue, forKey: Keys.silentReceiver) }
+    }
+
+    static var autoReconnect: Bool {
+        get { UserDefaults.standard.object(forKey: Keys.autoReconnect) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.autoReconnect) }
+    }
+
+    static var defaultColumns: Int {
+        get { UserDefaults.standard.object(forKey: Keys.defaultColumns) as? Int ?? 3 }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.defaultColumns) }
     }
 }
 

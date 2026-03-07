@@ -1,0 +1,92 @@
+import SwiftUI
+
+struct DiagnosticsView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var testURL: String = ""
+    @State private var testResult: String?
+    @State private var isTesting = false
+
+    var body: some View {
+        List {
+            Section("Connection Status") {
+                InfoRow(label: "State", value: appState.connectionState.displayTitle)
+                InfoRow(label: "Device Role", value: appState.deviceRole.title)
+                InfoRow(label: "Device Name", value: appState.deviceName)
+                InfoRow(label: "Trusted Devices", value: "\(appState.trustedDevices.count)")
+            }
+
+            Section("Data") {
+                InfoRow(label: "Dashboards", value: "\(appState.dashboards.count)")
+                InfoRow(
+                    label: "Total Buttons",
+                    value: "\(appState.dashboards.flatMap(\.pages).flatMap(\.buttons).count)"
+                )
+                InfoRow(
+                    label: "Total Pages",
+                    value: "\(appState.dashboards.flatMap(\.pages).count)"
+                )
+            }
+
+            Section("Connection Test") {
+                TextField("http://192.168.1.100:8080", text: $testURL)
+                    .keyboardType(.URL)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+
+                Button {
+                    testConnection()
+                } label: {
+                    HStack {
+                        Text("Test Connection")
+                        Spacer()
+                        if isTesting {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
+                    }
+                }
+                .disabled(testURL.trimmed.isEmpty || isTesting)
+
+                if let result = testResult {
+                    Text(result)
+                        .font(.caption)
+                        .foregroundStyle(result.contains("✓") ? .green : .red)
+                }
+            }
+
+            Section("App Info") {
+                InfoRow(label: "Version", value: AppConfiguration.appVersion)
+                InfoRow(label: "Build", value: AppConfiguration.buildNumber)
+                InfoRow(label: "iOS", value: UIDevice.current.systemVersion)
+                InfoRow(label: "Model", value: UIDevice.current.model)
+            }
+        }
+        .navigationTitle("Diagnostics")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func testConnection() {
+        isTesting = true
+        testResult = nil
+        Task {
+            let reachable = await HTTPActionService.shared.testConnection(urlString: testURL.trimmed)
+            testResult = reachable ? "✓ Reachable" : "✗ Unreachable"
+            isTesting = false
+        }
+    }
+}
+
+private struct InfoRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
+                .font(.subheadline)
+        }
+    }
+}

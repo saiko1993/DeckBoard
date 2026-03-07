@@ -106,6 +106,31 @@ final class SenderViewModel: ObservableObject {
         activePage = updated.pages.first
     }
 
+    func duplicatePage(_ page: DashboardPage, in dashboard: Dashboard) {
+        var updated = dashboard
+        var copy = page
+        copy.id = UUID()
+        copy.title = "\(page.title) Copy"
+        copy.buttons = page.buttons.map { btn in
+            var b = btn
+            b.id = UUID()
+            return b
+        }
+        updated.pages.append(copy)
+        appState.updateDashboard(updated)
+        activeDashboard = updated
+        activePage = copy
+    }
+
+    func setColumns(_ count: Int, for page: DashboardPage, in dashboard: Dashboard) {
+        var updated = dashboard
+        guard let pageIdx = updated.pages.firstIndex(where: { $0.id == page.id }) else { return }
+        updated.pages[pageIdx].layoutColumns = count
+        appState.updateDashboard(updated)
+        activeDashboard = updated
+        activePage = updated.pages[pageIdx]
+    }
+
     // MARK: - Button CRUD
 
     func addButton(_ button: DeskButton, to page: DashboardPage, in dashboard: Dashboard) {

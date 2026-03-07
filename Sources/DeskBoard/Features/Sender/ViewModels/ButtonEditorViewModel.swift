@@ -4,31 +4,29 @@ import Combine
 @MainActor
 final class ButtonEditorViewModel: ObservableObject {
 
-    // MARK: - Button Fields
-
     @Published var title: String = ""
+    @Published var subtitle: String = ""
     @Published var icon: String = "star.fill"
     @Published var colorHex: String = "#007AFF"
     @Published var selectedAction: ButtonAction = .none
     @Published var hapticFeedback: Bool = true
     @Published var isEnabled: Bool = true
 
-    // URL / Text payload
     @Published var urlText: String = ""
     @Published var textPayload: String = ""
 
-    // Keyboard shortcut
     @Published var shortcutKey: String = ""
     @Published var shortcutModifiers: [String] = []
     @Published var iconURL: String = ""
 
-    // MARK: - Validation
+    @Published var confirmBeforeExecute: Bool = false
+    @Published var cooldownSeconds: Double = 0
+    @Published var cornerRadius: Double = 14
+    @Published var iconScale: Double = 1.0
 
     var isValid: Bool {
         !title.trimmed.isEmpty
     }
-
-    // MARK: - Init
 
     init() {}
 
@@ -37,16 +35,19 @@ final class ButtonEditorViewModel: ObservableObject {
         populate(from: button)
     }
 
-    // MARK: - Populate from existing button
-
     func populate(from button: DeskButton) {
         title = button.title
+        subtitle = button.subtitle ?? ""
         icon = button.icon
         colorHex = button.colorHex
         hapticFeedback = button.hapticFeedback
         isEnabled = button.isEnabled
         selectedAction = button.action
         iconURL = button.iconURL ?? ""
+        confirmBeforeExecute = button.config.confirmBeforeExecute
+        cooldownSeconds = button.config.cooldownSeconds
+        cornerRadius = button.config.cornerRadius
+        iconScale = button.config.iconScale
         extractPayloads(from: button.action)
     }
 
@@ -64,20 +65,29 @@ final class ButtonEditorViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Build Button
-
     func buildButton(id: UUID = UUID(), position: Int = 0) -> DeskButton {
         let resolvedAction = resolveAction()
+        let config = ButtonConfig(
+            confirmBeforeExecute: confirmBeforeExecute,
+            cooldownSeconds: cooldownSeconds,
+            longPressAction: nil,
+            showStatusIndicator: true,
+            cornerRadius: cornerRadius,
+            iconScale: iconScale,
+            subtitle: subtitle.trimmed.isEmpty ? nil : subtitle.trimmed
+        )
         return DeskButton(
             id: id,
             title: title.trimmed,
+            subtitle: subtitle.trimmed.isEmpty ? nil : subtitle.trimmed,
             icon: icon,
             colorHex: colorHex,
             action: resolvedAction,
             hapticFeedback: hapticFeedback,
             position: position,
             isEnabled: isEnabled,
-            iconURL: iconURL.trimmed.isEmpty ? nil : iconURL.trimmed
+            iconURL: iconURL.trimmed.isEmpty ? nil : iconURL.trimmed,
+            config: config
         )
     }
 
@@ -100,8 +110,6 @@ final class ButtonEditorViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Common Icons
-
     static let commonIcons: [String] = [
         "star.fill", "heart.fill", "bolt.fill", "flame.fill",
         "play.fill", "pause.fill", "forward.fill", "backward.fill",
@@ -116,10 +124,12 @@ final class ButtonEditorViewModel: ObservableObject {
         "exclamationmark.triangle.fill", "info.circle.fill",
         "rectangle.on.rectangle", "square.stack.3d.up.fill",
         "stop.circle.fill", "play.rectangle.fill",
-        "hand.wave.fill", "person.fill", "globe"
+        "hand.wave.fill", "person.fill", "globe",
+        "command", "option", "shift", "delete.left.fill",
+        "power", "moon.fill", "sun.max.fill",
+        "wifi", "airplane", "light.max",
+        "camera.fill", "paintbrush.fill", "scissors"
     ]
-
-    // MARK: - Preset Colors
 
     static let presetColors: [(name: String, hex: String)] = [
         ("Blue",   "#007AFF"),
@@ -131,6 +141,11 @@ final class ButtonEditorViewModel: ObservableObject {
         ("Teal",   "#30B0C7"),
         ("Yellow", "#FFD60A"),
         ("Gray",   "#636366"),
-        ("Black",  "#1C1C1E")
+        ("Black",  "#1C1C1E"),
+        ("Indigo", "#5856D6"),
+        ("Mint",   "#00C7BE"),
+        ("Brown",  "#A2845E"),
+        ("Cyan",   "#32ADE6"),
+        ("Charcoal", "#2C2C2E")
     ]
 }
