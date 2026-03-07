@@ -8,7 +8,7 @@ struct DeskButtonView: View {
     let onDelete: () -> Void
 
     @State private var isPressed = false
-    @StateObject private var engine = ActionEngine.shared
+    @ObservedObject private var engine = ActionEngine.shared
 
     private var executionState: ButtonExecutionState {
         engine.stateFor(button.id)

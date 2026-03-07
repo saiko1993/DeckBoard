@@ -7,13 +7,14 @@ final class MediaControlService {
 
     static let shared = MediaControlService()
     private var volumeView: MPVolumeView?
-    private let musicPlayer = MPMusicPlayerController.systemMusicPlayer
+    private var isVolumeViewSetup = false
+    private lazy var musicPlayer: MPMusicPlayerController = .systemMusicPlayer
 
-    private init() {
-        setupVolumeView()
-    }
+    private init() {}
 
-    private func setupVolumeView() {
+    private func ensureVolumeView() {
+        guard !isVolumeViewSetup else { return }
+        isVolumeViewSetup = true
         let view = MPVolumeView(frame: CGRect(x: -1000, y: -1000, width: 1, height: 1))
         view.isHidden = true
         if let window = UIApplication.shared.connectedScenes
@@ -29,6 +30,7 @@ final class MediaControlService {
     }
 
     func volumeUp() {
+        ensureVolumeView()
         if let slider = volumeSlider {
             let newValue = min(slider.value + 0.0625, 1.0)
             slider.value = newValue
@@ -37,6 +39,7 @@ final class MediaControlService {
     }
 
     func volumeDown() {
+        ensureVolumeView()
         if let slider = volumeSlider {
             let newValue = max(slider.value - 0.0625, 0.0)
             slider.value = newValue
@@ -45,6 +48,7 @@ final class MediaControlService {
     }
 
     func mute() {
+        ensureVolumeView()
         if let slider = volumeSlider {
             slider.value = 0.0
             slider.sendActions(for: .valueChanged)

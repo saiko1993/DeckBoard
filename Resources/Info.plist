@@ -67,6 +67,8 @@
 	</array>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>DeskBoard uses Bluetooth to maintain a stable connection with paired devices.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>DeskBoard needs media library access to control music playback on this device.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>
