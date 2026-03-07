@@ -38,12 +38,13 @@ enum DeviceRole: String, Codable, CaseIterable, Sendable {
 // MARK: - PairedDevice
 
 struct PairedDevice: Codable, Identifiable, Hashable, Sendable {
-    var id: String          // MCPeerID.displayName used as unique key
+    var id: String
     var displayName: String
     var role: DeviceRole
     var pairedAt: Date
     var lastSeenAt: Date?
     var isTrusted: Bool
+    var pairingToken: String?
 
     init(
         id: String,
@@ -51,7 +52,8 @@ struct PairedDevice: Codable, Identifiable, Hashable, Sendable {
         role: DeviceRole,
         pairedAt: Date = Date(),
         lastSeenAt: Date? = nil,
-        isTrusted: Bool = true
+        isTrusted: Bool = true,
+        pairingToken: String? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -59,6 +61,7 @@ struct PairedDevice: Codable, Identifiable, Hashable, Sendable {
         self.pairedAt = pairedAt
         self.lastSeenAt = lastSeenAt
         self.isTrusted = isTrusted
+        self.pairingToken = pairingToken
     }
 }
 

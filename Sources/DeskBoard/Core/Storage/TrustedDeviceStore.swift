@@ -72,6 +72,23 @@ final class TrustedDeviceStore: @unchecked Sendable {
         }
     }
 
+    func validateToken(id: String, token: String) -> Bool {
+        let devices = loadAll()
+        guard let device = devices.first(where: { $0.id == id && $0.isTrusted }) else {
+            return true
+        }
+        guard let storedToken = device.pairingToken else {
+            return true
+        }
+        return storedToken == token
+    }
+
+    func addWithToken(_ device: PairedDevice, token: String) {
+        var updated = device
+        updated.pairingToken = token
+        add(updated)
+    }
+
     // MARK: - Clear
 
     func clearAll() {

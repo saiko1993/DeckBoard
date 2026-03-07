@@ -50,10 +50,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             task.setTaskCompleted(success: false)
         }
         let session = PeerSession.shared
-        if session.isConnected {
-            let name = AppConfiguration.deviceName
-            let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: name)
-            session.send(command: msg)
+        if !session.isConnected {
+            session.attemptQuickReconnect()
         }
         task.setTaskCompleted(success: true)
         scheduleBGRefresh()

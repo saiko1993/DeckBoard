@@ -219,7 +219,8 @@ final class AppState: ObservableObject {
         let device = PairedDevice(
             id: request.peerID.displayName,
             displayName: request.deviceName,
-            role: DeviceRole(rawValue: request.deviceRole) ?? .sender
+            role: DeviceRole(rawValue: request.deviceRole) ?? .sender,
+            pairingToken: PeerSession.pairingToken
         )
         trustedDeviceStore.add(device)
         trustedDevices = trustedDeviceStore.loadAll()

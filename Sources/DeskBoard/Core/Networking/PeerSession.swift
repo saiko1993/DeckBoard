@@ -14,6 +14,7 @@ struct DiscoveredPeer: Identifiable, @unchecked Sendable {
     let peerID: MCPeerID
     let role: DeviceRole?
     let deviceUUID: String?
+    let pairingToken: String?
 
     var displayName: String { peerID.displayName }
 }
@@ -58,6 +59,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     private static let keychainService = Keychain(service: "com.deskboard.device-identity")
     private static let deviceUUIDKey = "deviceUUID"
+    private static let pairingTokenKey = "pairingToken"
+    private static let lastPeerUUIDKey = "lastConnectedPeerUUID"
+    private static let lastPeerNameKey = "lastConnectedPeerName"
+    private static let lastConnectionTimestampKey = "lastConnectionTimestamp"
 
     static var stableDeviceUUID: String {
         if let existing = try? keychainService.getString(deviceUUIDKey) {
@@ -66,6 +71,35 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         let newUUID = UUID().uuidString
         try? keychainService.set(newUUID, key: deviceUUIDKey)
         return newUUID
+    }
+
+    static var pairingToken: String {
+        if let existing = try? keychainService.getString(pairingTokenKey) {
+            return existing
+        }
+        var bytes = [UInt8](repeating: 0, count: 32)
+        _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+        let token = Data(bytes).base64EncodedString()
+        try? keychainService.set(token, key: pairingTokenKey)
+        return token
+    }
+
+    private func saveLastConnectedPeer(uuid: String?, name: String) {
+        if let uuid {
+            try? Self.keychainService.set(uuid, key: Self.lastPeerUUIDKey)
+        }
+        try? Self.keychainService.set(name, key: Self.lastPeerNameKey)
+        try? Self.keychainService.set(ISO8601DateFormatter().string(from: Date()), key: Self.lastConnectionTimestampKey)
+    }
+
+    private func loadLastConnectedPeer() -> (uuid: String?, name: String?, timestamp: Date?) {
+        let uuid = try? Self.keychainService.getString(Self.lastPeerUUIDKey)
+        let name = try? Self.keychainService.getString(Self.lastPeerNameKey)
+        var timestamp: Date?
+        if let ts = try? Self.keychainService.getString(Self.lastConnectionTimestampKey) {
+            timestamp = ISO8601DateFormatter().date(from: ts)
+        }
+        return (uuid, name, timestamp)
     }
 
     private override init() {
@@ -126,7 +160,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         let info: [String: String] = [
             "role": currentRole.rawValue,
             "version": AppConfiguration.appVersion,
-            "deviceUUID": Self.stableDeviceUUID
+            "deviceUUID": Self.stableDeviceUUID,
+            "pairingToken": Self.pairingToken
         ]
         let adv = MCNearbyServiceAdvertiser(peer: pid, discoveryInfo: info, serviceType: serviceType)
         adv.delegate = self
@@ -448,6 +483,14 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         let wasRecentlyConnected = peer.id == lastConnectedPeerName
 
         guard isTrusted || wasRecentlyConnected else { return }
+
+        if isTrusted, let token = peer.pairingToken {
+            if let uuid = peer.deviceUUID,
+               !TrustedDeviceStore.shared.validateToken(id: uuid, token: token) {
+                return
+            }
+        }
+
         guard shouldInitiateConnection(to: peer.peerID) else { return }
 
         invite(peer: peer)
@@ -494,6 +537,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             pendingInvitePeers = []
             rebuildSession()
             startAllServices()
+            attemptFastResume()
             scheduleReconnect()
         } else {
             startHeartbeat()
@@ -506,6 +550,28 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             if !hasAdvertiser || !hasBrowser {
                 startAllServices()
             }
+        }
+    }
+
+    func attemptQuickReconnect() {
+        guard currentRole != .unset, !currentDeviceName.isEmpty else { return }
+        guard !isConnected else { return }
+        rebuildSession()
+        startAllServices()
+    }
+
+    private func attemptFastResume() {
+        let lastPeer = loadLastConnectedPeer()
+        guard let lastPeerName = lastPeer.name else { return }
+        if let ts = lastPeer.timestamp, Date().timeIntervalSince(ts) > 24 * 60 * 60 {
+            return
+        }
+        self.lastConnectedPeerName = lastPeerName
+        for peer in discoveredPeers where peer.id == lastPeerName {
+            if shouldInitiateConnection(to: peer.peerID) {
+                invite(peer: peer)
+            }
+            break
         }
     }
 
@@ -548,6 +614,9 @@ extension PeerSession: MCSessionDelegate {
                 self.pendingInvitePeers = []
                 self.stopReconnectTimer()
                 self.lastDataReceivedTime = Date()
+
+                let peerUUID = self.discoveredPeers.first(where: { $0.id == peerName })?.deviceUUID
+                self.saveLastConnectedPeer(uuid: peerUUID, name: peerName)
 
                 let peerRole: DeviceRole = self.currentRole == .sender ? .receiver : .sender
                 let device = PairedDevice(
@@ -695,7 +764,8 @@ extension PeerSession: MCNearbyServiceBrowserDelegate {
         let roleRaw = info?["role"] ?? ""
         let role = DeviceRole(rawValue: roleRaw)
         let deviceUUID = info?["deviceUUID"]
-        let peer = DiscoveredPeer(id: peerID.displayName, peerID: peerID, role: role, deviceUUID: deviceUUID)
+        let remotePairingToken = info?["pairingToken"]
+        let peer = DiscoveredPeer(id: peerID.displayName, peerID: peerID, role: role, deviceUUID: deviceUUID, pairingToken: remotePairingToken)
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
