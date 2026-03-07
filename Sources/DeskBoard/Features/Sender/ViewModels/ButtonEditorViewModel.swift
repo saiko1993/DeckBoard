@@ -67,6 +67,8 @@ final class ButtonEditorViewModel: ObservableObject {
             shortcutKey = key
         case .runShortcut(let name):
             shortcutName = name
+        case .runScript(let name):
+            shortcutName = name
         default:
             break
         }
@@ -123,6 +125,8 @@ final class ButtonEditorViewModel: ObservableObject {
             return shortcutKey.trimmed.isEmpty ? .none : .keyboardShortcut(modifiers: shortcutModifiers, key: shortcutKey.trimmed)
         case .runShortcut:
             return shortcutName.trimmed.isEmpty ? .none : .runShortcut(name: shortcutName.trimmed)
+        case .runScript:
+            return shortcutName.trimmed.isEmpty ? .none : .runScript(name: shortcutName.trimmed)
         default:
             return selectedAction
         }

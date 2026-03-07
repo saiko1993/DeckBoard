@@ -180,6 +180,42 @@ final class ActionEngine: ObservableObject {
         case .lockScreen:
             return .success(detail: "Lock command sent")
 
+        case .openTerminal:
+            let opened = await media.openTerminal()
+            return opened ? .success(detail: "Opened Terminal") : .failure(error: "Could not open Terminal")
+
+        case .runScript(let name):
+            let opened = await media.runScript(name: name)
+            return opened ? .success(detail: "Running \(name)") : .failure(error: "Could not run script")
+
+        case .toggleDarkMode:
+            let toggled = await media.toggleDarkMode()
+            return toggled ? .success(detail: "Toggled Dark Mode") : .failure(error: "Could not toggle")
+
+        case .screenshot:
+            let taken = await media.takeScreenshot()
+            return taken ? .success(detail: "Screenshot taken") : .failure(error: "Could not take screenshot")
+
+        case .screenRecord:
+            let toggled = await media.toggleScreenRecord()
+            return toggled ? .success(detail: "Screen recording toggled") : .failure(error: "Could not toggle recording")
+
+        case .forceQuitApp:
+            let quit = await media.forceQuitFrontApp()
+            return quit ? .success(detail: "Force quit") : .failure(error: "Could not force quit")
+
+        case .emptyTrash:
+            let emptied = await media.emptyTrash()
+            return emptied ? .success(detail: "Trash emptied") : .failure(error: "Could not empty trash")
+
+        case .toggleDoNotDisturb:
+            let toggled = await media.toggleDoNotDisturb()
+            return toggled ? .success(detail: "Do Not Disturb toggled") : .failure(error: "Could not toggle DND")
+
+        case .sleepDisplay:
+            let slept = await media.sleepDisplay()
+            return slept ? .success(detail: "Display sleeping") : .failure(error: "Could not sleep display")
+
         case .macro(let actions):
             return await executeMacro(actions)
         }

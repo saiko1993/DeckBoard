@@ -108,4 +108,40 @@ final class MediaControlService {
         guard let url = URL(string: shortcutURL) else { return false }
         return await UIApplication.shared.open(url)
     }
+
+    func openTerminal() async -> Bool {
+        await runShortcut(name: "Open Terminal")
+    }
+
+    func runScript(name: String) async -> Bool {
+        await runShortcut(name: name)
+    }
+
+    func toggleDarkMode() async -> Bool {
+        await runShortcut(name: "Toggle Dark Mode")
+    }
+
+    func takeScreenshot() async -> Bool {
+        await runShortcut(name: "Take Screenshot")
+    }
+
+    func toggleScreenRecord() async -> Bool {
+        await runShortcut(name: "Toggle Screen Recording")
+    }
+
+    func forceQuitFrontApp() async -> Bool {
+        await runShortcut(name: "Force Quit Front App")
+    }
+
+    func emptyTrash() async -> Bool {
+        await runShortcut(name: "Empty Trash")
+    }
+
+    func toggleDoNotDisturb() async -> Bool {
+        await runShortcut(name: "Toggle Do Not Disturb")
+    }
+
+    func sleepDisplay() async -> Bool {
+        await runShortcut(name: "Sleep Display")
+    }
 }

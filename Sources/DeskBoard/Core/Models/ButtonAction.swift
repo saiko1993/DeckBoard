@@ -24,6 +24,15 @@ enum ButtonAction: Codable, Hashable, Sendable {
     case brightnessDown
     case lockScreen
     case runShortcut(name: String)
+    case openTerminal
+    case runScript(name: String)
+    case toggleDarkMode
+    case screenshot
+    case screenRecord
+    case forceQuitApp
+    case emptyTrash
+    case toggleDoNotDisturb
+    case sleepDisplay
 
     var displayName: String {
         switch self {
@@ -55,6 +64,16 @@ enum ButtonAction: Codable, Hashable, Sendable {
         case .lockScreen:           return "Lock Screen"
         case .runShortcut(let name):
             return name.isEmpty ? "Run Shortcut" : "Run: \(name)"
+        case .openTerminal:         return "Open Terminal"
+        case .runScript(let name):
+            return name.isEmpty ? "Run Script" : "Script: \(name)"
+        case .toggleDarkMode:       return "Toggle Dark Mode"
+        case .screenshot:           return "Screenshot"
+        case .screenRecord:         return "Screen Record"
+        case .forceQuitApp:         return "Force Quit App"
+        case .emptyTrash:           return "Empty Trash"
+        case .toggleDoNotDisturb:   return "Do Not Disturb"
+        case .sleepDisplay:         return "Sleep Display"
         }
     }
 
@@ -87,6 +106,15 @@ enum ButtonAction: Codable, Hashable, Sendable {
         case .brightnessDown:       return "sun.min.fill"
         case .lockScreen:           return "lock.fill"
         case .runShortcut:          return "bolt.fill"
+        case .openTerminal:         return "terminal.fill"
+        case .runScript:            return "scroll.fill"
+        case .toggleDarkMode:       return "circle.lefthalf.filled"
+        case .screenshot:           return "camera.viewfinder"
+        case .screenRecord:         return "record.circle"
+        case .forceQuitApp:         return "xmark.octagon.fill"
+        case .emptyTrash:           return "trash.fill"
+        case .toggleDoNotDisturb:   return "moon.fill"
+        case .sleepDisplay:         return "display"
         }
     }
 
@@ -105,9 +133,11 @@ enum ButtonAction: Codable, Hashable, Sendable {
             return .macro
         case .openApp:
             return .apps
-        case .brightnessUp, .brightnessDown, .lockScreen:
+        case .brightnessUp, .brightnessDown, .lockScreen,
+             .toggleDarkMode, .screenshot, .screenRecord,
+             .forceQuitApp, .emptyTrash, .toggleDoNotDisturb, .sleepDisplay:
             return .device
-        case .runShortcut:
+        case .runShortcut, .runScript, .openTerminal:
             return .shortcuts
         }
     }
@@ -155,7 +185,15 @@ extension ButtonAction {
             .presentationNext,
             .presentationPrevious,
             .presentationStart,
-            .presentationEnd
+            .presentationEnd,
+            .openTerminal,
+            .toggleDarkMode,
+            .screenshot,
+            .screenRecord,
+            .forceQuitApp,
+            .emptyTrash,
+            .toggleDoNotDisturb,
+            .sleepDisplay
         ]
     }
 

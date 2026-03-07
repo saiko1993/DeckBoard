@@ -222,6 +222,11 @@ struct ButtonEditorView: View {
                     .autocorrectionDisabled()
             }
 
+            if case .runScript = viewModel.selectedAction {
+                TextField("Script / Shortcut Name", text: $viewModel.shortcutName)
+                    .autocorrectionDisabled()
+            }
+
             Button {
                 testAction()
             } label: {
@@ -374,6 +379,13 @@ struct ActionPickerView: View {
             actionRow(.brightnessUp, nil)
             actionRow(.brightnessDown, nil)
             actionRow(.lockScreen, nil)
+            actionRow(.toggleDarkMode, nil)
+            actionRow(.screenshot, nil)
+            actionRow(.screenRecord, nil)
+            actionRow(.toggleDoNotDisturb, nil)
+            actionRow(.sleepDisplay, nil)
+            actionRow(.forceQuitApp, nil)
+            actionRow(.emptyTrash, nil)
         }
     }
 
@@ -400,7 +412,7 @@ struct ActionPickerView: View {
 
     @ViewBuilder
     private var shortcutsSection: some View {
-        Section("Shortcuts") {
+        Section("Shortcuts & Scripts") {
             Button {
                 selectedAction = .runShortcut(name: "")
                 dismiss()
@@ -413,6 +425,25 @@ struct ActionPickerView: View {
                         .foregroundStyle(.primary)
                     Spacer()
                     if case .runShortcut = selectedAction {
+                        Image(systemName: "checkmark").foregroundStyle(.blue)
+                    }
+                }
+            }
+
+            actionRow(.openTerminal, nil)
+
+            Button {
+                selectedAction = .runScript(name: "")
+                dismiss()
+            } label: {
+                HStack {
+                    Image(systemName: "scroll.fill")
+                        .foregroundStyle(.blue)
+                        .frame(width: 28)
+                    Text("Run Script")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if case .runScript = selectedAction {
                         Image(systemName: "checkmark").foregroundStyle(.blue)
                     }
                 }

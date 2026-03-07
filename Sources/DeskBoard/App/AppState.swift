@@ -215,19 +215,37 @@ final class AppState: ObservableObject {
         case .brightnessDown:
             media.brightnessDown()
         case .openApp(let appID):
-            Task { await media.openAppByID(appID) }
+            Task { _ = await media.openAppByID(appID) }
         case .runShortcut(let name):
-            Task { await media.runShortcut(name: name) }
+            Task { _ = await media.runShortcut(name: name) }
         case .presentationNext:
-            Task { await media.runShortcut(name: "Next Slide") }
+            Task { _ = await media.runShortcut(name: "Next Slide") }
         case .presentationPrevious:
-            Task { await media.runShortcut(name: "Previous Slide") }
+            Task { _ = await media.runShortcut(name: "Previous Slide") }
         case .presentationStart:
-            Task { await media.runShortcut(name: "Start Presentation") }
+            Task { _ = await media.runShortcut(name: "Start Presentation") }
         case .presentationEnd:
-            Task { await media.runShortcut(name: "End Presentation") }
+            Task { _ = await media.runShortcut(name: "End Presentation") }
         case .lockScreen:
             break
+        case .openTerminal:
+            Task { _ = await media.openTerminal() }
+        case .runScript(let name):
+            Task { _ = await media.runScript(name: name) }
+        case .toggleDarkMode:
+            Task { _ = await media.toggleDarkMode() }
+        case .screenshot:
+            Task { _ = await media.takeScreenshot() }
+        case .screenRecord:
+            Task { _ = await media.toggleScreenRecord() }
+        case .forceQuitApp:
+            Task { _ = await media.forceQuitFrontApp() }
+        case .emptyTrash:
+            Task { _ = await media.emptyTrash() }
+        case .toggleDoNotDisturb:
+            Task { _ = await media.toggleDoNotDisturb() }
+        case .sleepDisplay:
+            Task { _ = await media.sleepDisplay() }
         case .keyboardShortcut, .macro, .none:
             break
         }
