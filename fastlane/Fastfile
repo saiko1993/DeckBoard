@@ -1,0 +1,260 @@
+# frozen_string_literal: true
+
+# =============================================================================
+# DeskBoard - Fastfile
+# Automates building, testing, and distributing the DeskBoard iOS app.
+#
+# Prerequisites:
+#   - Xcode Command Line Tools installed
+#   - Ruby + Bundler: `gem install bundler && bundle install`
+#   - Mint (Swift tools): `brew install mint && mint bootstrap`
+#   - Environment variables set (see .env.example)
+#
+# Usage:
+#   bundle exec fastlane <lane>
+# =============================================================================
+
+default_platform(:ios)
+
+APP_IDENTIFIER = "com.deskboard.app"
+SCHEME         = "DeskBoard"
+WORKSPACE      = "DeskBoard.xcworkspace"
+PROJECT        = "DeskBoard.xcodeproj"
+
+platform :ios do
+  # ---------------------------------------------------------------------------
+  # Setup
+  # ---------------------------------------------------------------------------
+
+  desc "Generate Xcode project using XcodeGen"
+  lane :generate do
+    sh("mint run xcodegen generate --spec ../project.yml")
+    UI.success("✅ Xcode project generated successfully")
+  end
+
+  desc "Install all dependencies (SPM, Mint tools, Ruby gems)"
+  lane :setup do
+    generate
+    sh("cd .. && swift package resolve") if File.exist?("../Package.resolved")
+    UI.success("✅ Dependencies installed and project ready")
+  end
+
+  # ---------------------------------------------------------------------------
+  # Code Quality
+  # ---------------------------------------------------------------------------
+
+  desc "Run SwiftLint to check code style"
+  lane :lint do
+    swiftlint(
+      mode: :lint,
+      config_file: ".swiftlint.yml",
+      raise_if_swiftlint_error: true,
+      ignore_exit_status: false
+    )
+  end
+
+  desc "Run SwiftFormat to auto-format code"
+  lane :format do
+    sh("mint run swiftformat --config ../.swiftformat ../Sources ../Tests")
+  end
+
+  # ---------------------------------------------------------------------------
+  # Testing
+  # ---------------------------------------------------------------------------
+
+  desc "Run unit tests"
+  lane :test do
+    generate unless File.exist?("../#{PROJECT}")
+
+    run_tests(
+      project: PROJECT,
+      scheme: SCHEME,
+      devices: ["iPhone 15 Pro"],
+      clean: true,
+      code_coverage: true,
+      output_directory: "fastlane/test_output",
+      output_types: "html,junit",
+      fail_build: true
+    )
+
+    UI.success("✅ All tests passed")
+  end
+
+  # ---------------------------------------------------------------------------
+  # Certificates & Provisioning (using Match)
+  # ---------------------------------------------------------------------------
+
+  desc "Sync development certificates and provisioning profiles"
+  lane :sync_dev_certs do
+    match(
+      type: "development",
+      app_identifier: APP_IDENTIFIER,
+      readonly: is_ci
+    )
+  end
+
+  desc "Sync distribution certificates and provisioning profiles"
+  lane :sync_dist_certs do
+    match(
+      type: "appstore",
+      app_identifier: APP_IDENTIFIER,
+      readonly: is_ci
+    )
+  end
+
+  desc "Sync AdHoc certificates and provisioning profiles"
+  lane :sync_adhoc_certs do
+    match(
+      type: "adhoc",
+      app_identifier: APP_IDENTIFIER,
+      readonly: is_ci
+    )
+  end
+
+  # ---------------------------------------------------------------------------
+  # Building
+  # ---------------------------------------------------------------------------
+
+  desc "Build the app for development (Debug)"
+  lane :build_debug do
+    generate unless File.exist?("../#{PROJECT}")
+    sync_dev_certs
+
+    gym(
+      project: PROJECT,
+      scheme: SCHEME,
+      configuration: "Debug",
+      export_method: "development",
+      output_directory: "build",
+      output_name: "DeskBoard-Debug.ipa",
+      include_symbols: true,
+      include_bitcode: false,
+      xcargs: [
+        "DEVELOPMENT_TEAM=#{ENV['TEAM_ID']}",
+        "PROVISIONING_PROFILE_SPECIFIER=match Development #{APP_IDENTIFIER}"
+      ].join(" ")
+    )
+
+    UI.success("✅ Debug build complete")
+  end
+
+  desc "Build the app for AdHoc distribution"
+  lane :build_adhoc do
+    generate unless File.exist?("../#{PROJECT}")
+    sync_adhoc_certs
+
+    gym(
+      project: PROJECT,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "ad-hoc",
+      output_directory: "build",
+      output_name: "DeskBoard-AdHoc.ipa",
+      include_symbols: true,
+      include_bitcode: false,
+      xcargs: [
+        "DEVELOPMENT_TEAM=#{ENV['TEAM_ID']}",
+        "PROVISIONING_PROFILE_SPECIFIER=match AdHoc #{APP_IDENTIFIER}"
+      ].join(" ")
+    )
+
+    UI.success("✅ AdHoc build complete")
+  end
+
+  desc "Build the app for App Store release"
+  lane :build_release do
+    generate unless File.exist?("../#{PROJECT}")
+    sync_dist_certs
+
+    gym(
+      project: PROJECT,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "build",
+      output_name: "DeskBoard-Release.ipa",
+      include_symbols: true,
+      include_bitcode: false,
+      xcargs: [
+        "DEVELOPMENT_TEAM=#{ENV['TEAM_ID']}",
+        "PROVISIONING_PROFILE_SPECIFIER=match AppStore #{APP_IDENTIFIER}"
+      ].join(" ")
+    )
+
+    UI.success("✅ Release build complete")
+  end
+
+  # ---------------------------------------------------------------------------
+  # Distribution
+  # ---------------------------------------------------------------------------
+
+  desc "Deploy to TestFlight for internal testing"
+  lane :beta do
+    ensure_git_status_clean unless is_ci
+    increment_build_number(xcodeproj: PROJECT)
+    build_release
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      apple_id: ENV["APP_APPLE_ID"],
+      ipa: "build/DeskBoard-Release.ipa"
+    )
+    UI.success("✅ Uploaded to TestFlight")
+  end
+
+  desc "Deploy to App Store"
+  lane :release do
+    ensure_git_status_clean
+    increment_build_number(xcodeproj: PROJECT)
+    build_release
+    upload_to_app_store(
+      ipa: "build/DeskBoard-Release.ipa",
+      skip_screenshots: true,
+      skip_metadata: false,
+      submit_for_review: false,
+      automatic_release: false
+    )
+    UI.success("✅ Uploaded to App Store")
+  end
+
+  # ---------------------------------------------------------------------------
+  # Utilities
+  # ---------------------------------------------------------------------------
+
+  desc "Increment build number"
+  lane :bump_build do
+    increment_build_number(xcodeproj: PROJECT)
+    commit_version_bump(
+      xcodeproj: PROJECT,
+      message: "chore: bump build number to #{get_build_number(xcodeproj: PROJECT)}"
+    )
+  end
+
+  desc "Increment version number (type: patch|minor|major)"
+  lane :bump_version do |options|
+    bump_type = options[:type] || "patch"
+    increment_version_number(
+      bump_type: bump_type,
+      xcodeproj: PROJECT
+    )
+    increment_build_number(xcodeproj: PROJECT)
+    commit_version_bump(
+      xcodeproj: PROJECT,
+      message: "chore: bump version to #{get_version_number(xcodeproj: PROJECT)}"
+    )
+  end
+
+  desc "Clean build artifacts"
+  lane :clean do
+    sh("rm -rf ../build")
+    sh("rm -rf ../DerivedData")
+    clear_derived_data
+    UI.success("✅ Build artifacts cleaned")
+  end
+
+  # ---------------------------------------------------------------------------
+  # Error handling
+  # ---------------------------------------------------------------------------
+  error do |lane, exception|
+    UI.error("❌ Error in lane #{lane}: #{exception.message}")
+  end
+end

@@ -1,23 +1,62 @@
 # Xcode
-build/
 DerivedData/
 *.xcuserstate
-*.xcuserdatad/
+*.xccheckout
+*.moved-aside
+*.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+*.xcodeproj/
 xcuserdata/
+
+# Generated files (generate with: mint run xcodegen)
+DeskBoard.xcodeproj
+DeskBoard.xcworkspace
 
 # Swift Package Manager
 .build/
 .swiftpm/
 Package.resolved
 
-# macOS
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output/
+build/
+
+# Ruby / Bundler
+vendor/bundle/
+.bundle/
+Gemfile.lock
+
+# CocoaPods (not used but just in case)
+Pods/
+*.xcworkspace
+
+# Environment
+.env
+.env.local
+
+# OS
 .DS_Store
+*.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
 *.swp
 *~
 
+# Certificates (NEVER commit these)
+*.p12
+*.cer
+*.mobileprovision
+
+# Log files
+*.log
+
+# Rork / React Native / Expo
 ios/
 android/
-.env
 core
 node_modules
 .expo
