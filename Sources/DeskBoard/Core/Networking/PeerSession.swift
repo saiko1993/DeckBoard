@@ -159,7 +159,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     // MARK: - Private Helpers
 
-    private func publishOnMain(_ block: @escaping () -> Void) {
+    private func publishOnMain(_ block: @escaping @Sendable () -> Void) {
         if Thread.isMainThread {
             block()
         } else {

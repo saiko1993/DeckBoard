@@ -20,6 +20,7 @@ enum AppConfiguration {
 
     // MARK: - Defaults
 
+    @MainActor
     static var deviceName: String {
         get { UserDefaults.standard.string(forKey: Keys.deviceName) ?? UIDeviceName.current }
         set { UserDefaults.standard.set(newValue, forKey: Keys.deviceName) }
@@ -51,6 +52,7 @@ enum AppConfiguration {
 
 // MARK: - UIDeviceName Helper
 
+@MainActor
 private enum UIDeviceName {
     static var current: String {
         #if canImport(UIKit)
