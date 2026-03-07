@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated final class BackupService: @unchecked Sendable {
+final class BackupService: @unchecked Sendable {
 
     static let shared = BackupService()
 

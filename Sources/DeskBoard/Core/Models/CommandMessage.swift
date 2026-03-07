@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - CommandMessage
 
-nonisolated struct CommandMessage: Codable, Identifiable, Sendable {
+struct CommandMessage: Codable, Identifiable, Sendable {
     let id: UUID
     let type: CommandType
     let payload: CommandPayload
@@ -20,7 +20,7 @@ nonisolated struct CommandMessage: Codable, Identifiable, Sendable {
 
 // MARK: - CommandType
 
-nonisolated enum CommandType: String, Codable, Sendable {
+enum CommandType: String, Codable, Sendable {
     case action          = "action"
     case pairingRequest  = "pairing_request"
     case pairingApproval = "pairing_approval"
@@ -32,7 +32,7 @@ nonisolated enum CommandType: String, Codable, Sendable {
 
 // MARK: - CommandPayload
 
-nonisolated enum CommandPayload: Codable, Sendable {
+enum CommandPayload: Codable, Sendable {
     case buttonAction(ButtonAction)
     case pairingRequest(pairingCode: String, deviceName: String, deviceRole: String)
     case pairingApproval(deviceName: String)

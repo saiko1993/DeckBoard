@@ -3,7 +3,7 @@ import UIKit
 
 // MARK: - AppConfiguration
 
-nonisolated enum AppConfiguration {
+enum AppConfiguration {
     static let appVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     static let buildNumber: String = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
 

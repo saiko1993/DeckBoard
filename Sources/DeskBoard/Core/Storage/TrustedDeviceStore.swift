@@ -4,7 +4,7 @@ import KeychainAccess
 // MARK: - TrustedDeviceStore
 
 /// Persists trusted paired devices to the Keychain.
-nonisolated final class TrustedDeviceStore: @unchecked Sendable {
+final class TrustedDeviceStore: @unchecked Sendable {
 
     static let shared = TrustedDeviceStore()
 

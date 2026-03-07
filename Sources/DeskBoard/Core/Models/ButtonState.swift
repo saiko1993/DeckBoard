@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum ButtonExecutionState: Sendable {
+enum ButtonExecutionState: Sendable {
     case idle
     case running
     case success
@@ -13,7 +13,7 @@ nonisolated enum ButtonExecutionState: Sendable {
     }
 }
 
-nonisolated struct ButtonConfig: Codable, Hashable, Sendable {
+struct ButtonConfig: Codable, Hashable, Sendable {
     var confirmBeforeExecute: Bool = false
     var cooldownSeconds: Double = 0
     var longPressAction: ButtonAction?

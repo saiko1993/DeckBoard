@@ -3,7 +3,7 @@ import Foundation
 // MARK: - CommandEncoder
 
 /// Pure-value-type JSON encoder/decoder for CommandMessage.
-nonisolated struct CommandEncoder: Sendable {
+struct CommandEncoder: Sendable {
 
     private static let encoder: JSONEncoder = {
         let enc = JSONEncoder()

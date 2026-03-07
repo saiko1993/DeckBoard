@@ -3,7 +3,7 @@ import Foundation
 // MARK: - DashboardStore
 
 /// Persists dashboards to UserDefaults as JSON.
-nonisolated final class DashboardStore: @unchecked Sendable {
+final class DashboardStore: @unchecked Sendable {
 
     static let shared = DashboardStore()
 

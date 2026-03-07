@@ -1,6 +1,6 @@
 import SwiftUI
 
-nonisolated enum KnobDirection: Sendable {
+enum KnobDirection: Sendable {
     case up, down
 }
 

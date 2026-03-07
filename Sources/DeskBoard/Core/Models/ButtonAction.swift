@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum ButtonAction: Codable, Hashable, Sendable {
+enum ButtonAction: Codable, Hashable, Sendable {
     case none
     case openURL(url: String)
     case sendText(text: String)
@@ -142,7 +142,7 @@ nonisolated enum ButtonAction: Codable, Hashable, Sendable {
         }
     }
 
-    nonisolated enum ActionCategory: String, CaseIterable, Sendable {
+    enum ActionCategory: String, CaseIterable, Sendable {
         case general      = "General"
         case media        = "Media"
         case apps         = "Apps"

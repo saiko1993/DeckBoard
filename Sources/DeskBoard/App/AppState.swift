@@ -245,7 +245,7 @@ final class AppState: ObservableObject {
     }
 }
 
-nonisolated enum AppTheme: String, CaseIterable, Sendable {
+enum AppTheme: String, CaseIterable, Sendable {
     case system = "system"
     case light  = "light"
     case dark   = "dark"

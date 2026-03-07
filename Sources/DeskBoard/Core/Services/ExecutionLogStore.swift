@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated final class ExecutionLogStore: @unchecked Sendable {
+final class ExecutionLogStore: @unchecked Sendable {
 
     static let shared = ExecutionLogStore()
 

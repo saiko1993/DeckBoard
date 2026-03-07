@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum ActionPayload: Codable, Hashable, Sendable {
+enum ActionPayload: Codable, Hashable, Sendable {
     case none
     case url(String)
     case text(String)

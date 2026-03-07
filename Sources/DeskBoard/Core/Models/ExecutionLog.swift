@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct ExecutionLog: Codable, Identifiable, Sendable {
+struct ExecutionLog: Codable, Identifiable, Sendable {
     let id: UUID
     let buttonID: UUID?
     let buttonTitle: String
@@ -31,7 +31,7 @@ nonisolated struct ExecutionLog: Codable, Identifiable, Sendable {
     }
 }
 
-nonisolated enum ExecutionResult: Codable, Sendable, Hashable {
+enum ExecutionResult: Codable, Sendable, Hashable {
     case success(detail: String?)
     case failure(error: String)
     case timeout
