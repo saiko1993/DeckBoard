@@ -10,7 +10,7 @@ struct DeskBoardApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(appState)
-                .onChange(of: scenePhase) { newPhase in
+                .onChange(of: scenePhase) { _, newPhase in
                     handleScenePhase(newPhase)
                 }
                 .onAppear {
@@ -24,10 +24,10 @@ struct DeskBoardApp: App {
         case .active:
             UIApplication.shared.isIdleTimerDisabled = true
             appState.handleBecameActive()
-        case .background:
-            break
         case .inactive:
             break
+        case .background:
+            appState.handleEnteredBackground()
         @unknown default:
             break
         }

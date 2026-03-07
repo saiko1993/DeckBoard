@@ -57,9 +57,16 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
+		<string>processing</string>
 		<string>bluetooth-central</string>
 		<string>bluetooth-peripheral</string>
 	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.deskboard.connection-keepalive</string>
+	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>DeskBoard uses Bluetooth to maintain a stable connection with paired devices.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>

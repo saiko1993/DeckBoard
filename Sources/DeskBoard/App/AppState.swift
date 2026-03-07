@@ -3,39 +3,25 @@ import Combine
 import SwiftUI
 import UIKit
 
-// MARK: - AppState
-
 @MainActor
 final class AppState: ObservableObject {
 
-    // MARK: - Role & Onboarding
-
     @Published var deviceRole: DeviceRole = AppConfiguration.deviceRole
     @Published var isOnboardingDone: Bool = AppConfiguration.isOnboardingDone
-
-    // MARK: - Device Name
 
     @Published var deviceName: String = AppConfiguration.deviceName {
         didSet { AppConfiguration.deviceName = deviceName }
     }
 
-    // MARK: - Dashboards
-
     @Published var dashboards: [Dashboard] = []
     @Published var activeDashboardID: UUID?
-
-    // MARK: - Connection (mirrored from PeerSession)
 
     @Published var connectionState: ConnectionState = .idle
     @Published var discoveredPeers: [DiscoveredPeer] = []
     @Published var incomingPairingRequest: IncomingPairingRequest?
     @Published var lastReceivedCommand: CommandMessage?
 
-    // MARK: - Trusted Devices
-
     @Published var trustedDevices: [PairedDevice] = []
-
-    // MARK: - Preferences
 
     @Published var appTheme: AppTheme = .system
     @Published var hapticEnabled: Bool = AppConfiguration.hapticEnabled {
@@ -45,15 +31,13 @@ final class AppState: ObservableObject {
         didSet { AppConfiguration.silentReceiver = silentReceiver }
     }
 
-    // MARK: - Private
-
     private let peerSession: PeerSession
     private let dashboardStore: DashboardStore
     private let trustedDeviceStore: TrustedDeviceStore
     private var cancellables = Set<AnyCancellable>()
     private var hasConfigured = false
-
-    // MARK: - Init
+    private var connectionMonitorTimer: DispatchSourceTimer?
+    private let monitorQueue = DispatchQueue(label: "com.deskboard.connectionmonitor", qos: .userInitiated)
 
     init(
         peerSession: PeerSession = .shared,
@@ -66,8 +50,6 @@ final class AppState: ObservableObject {
         loadInitialData()
         bindPeerSession()
     }
-
-    // MARK: - Setup
 
     private func loadInitialData() {
         dashboards = dashboardStore.load()
@@ -98,8 +80,6 @@ final class AppState: ObservableObject {
             .store(in: &cancellables)
     }
 
-    // MARK: - Ensure Connection
-
     func ensureConnectionActive() {
         guard deviceRole != .unset, isOnboardingDone else { return }
         if !hasConfigured {
@@ -107,17 +87,21 @@ final class AppState: ObservableObject {
         } else if !connectionState.isConnected {
             reconnect()
         }
+        startConnectionMonitor()
     }
 
     func handleBecameActive() {
         guard deviceRole != .unset, isOnboardingDone else { return }
+        UIApplication.shared.isIdleTimerDisabled = true
         peerSession.enableAutoReconnect()
-        if !connectionState.isConnected {
-            peerSession.enterForeground()
-        }
+        peerSession.enterForeground()
+        startConnectionMonitor()
     }
 
-    // MARK: - Role Management
+    func handleEnteredBackground() {
+        guard deviceRole != .unset, isOnboardingDone else { return }
+        peerSession.enterBackground()
+    }
 
     func setRole(_ role: DeviceRole) {
         deviceRole = role
@@ -140,7 +124,27 @@ final class AppState: ObservableObject {
         }
     }
 
-    // MARK: - Dashboard Management
+    private func startConnectionMonitor() {
+        stopConnectionMonitor()
+        let timer = DispatchSource.makeTimerSource(queue: monitorQueue)
+        timer.schedule(deadline: .now() + 10.0, repeating: 10.0, leeway: .seconds(2))
+        timer.setEventHandler { [weak self] in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                guard self.deviceRole != .unset, self.isOnboardingDone else { return }
+                if !self.peerSession.isConnected {
+                    self.peerSession.restartServices()
+                }
+            }
+        }
+        timer.resume()
+        connectionMonitorTimer = timer
+    }
+
+    private func stopConnectionMonitor() {
+        connectionMonitorTimer?.cancel()
+        connectionMonitorTimer = nil
+    }
 
     func saveDashboards() {
         dashboardStore.save(dashboards)
@@ -167,8 +171,6 @@ final class AppState: ObservableObject {
         dashboards.first { $0.id == activeDashboardID }
     }
 
-    // MARK: - Sending Commands
-
     func send(action: ButtonAction, button: DeskButton) {
         guard connectionState.isConnected else { return }
         if hapticEnabled && button.hapticFeedback {
@@ -181,8 +183,6 @@ final class AppState: ObservableObject {
         )
         peerSession.send(command: message)
     }
-
-    // MARK: - Receiving Commands
 
     private func handleReceivedCommand(_ command: CommandMessage) {
         lastReceivedCommand = command
@@ -240,8 +240,6 @@ final class AppState: ObservableObject {
         }
     }
 
-    // MARK: - Pairing
-
     func acceptPairing() {
         guard let request = incomingPairingRequest else { return }
         peerSession.acceptPairing()
@@ -263,19 +261,16 @@ final class AppState: ObservableObject {
         trustedDevices = trustedDeviceStore.loadAll()
     }
 
-    // MARK: - Reconnect
-
     func reconnect() {
         peerSession.enableAutoReconnect()
         configurePeerSession()
     }
 
     func disconnect() {
+        stopConnectionMonitor()
         peerSession.disconnect()
     }
 }
-
-// MARK: - AppTheme
 
 enum AppTheme: String, CaseIterable, Sendable {
     case system = "system"
