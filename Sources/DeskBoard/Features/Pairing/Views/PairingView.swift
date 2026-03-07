@@ -158,13 +158,16 @@ struct ConnectionStatusCard: View {
 
     private var statusDetail: String {
         switch state {
-        case .idle:          return "Not searching"
-        case .searching:     return "Looking for nearby devices on your Wi-Fi"
-        case .found(let n):  return "Found \(n) — tap to connect"
-        case .pairing:       return "Completing pairing handshake"
-        case .connected(let d): return "Paired with \(d.displayName)"
-        case .disconnected:  return "Connection lost"
-        case .error(let m):  return m
+        case .idle:                              return "Not searching"
+        case .searching:                         return "Looking for nearby devices on your Wi-Fi"
+        case .found(let n):                      return "Found \(n) — tap to connect"
+        case .pairing:                           return "Completing pairing handshake"
+        case .connected(let d):                  return "Paired with \(d.displayName)"
+        case .disconnected:                      return "Connection lost"
+        case .reconnectingToLastDevice(let name): return "Reconnecting to \(name)"
+        case .verifyingTrustedDevice(let name):  return "Verifying \(name)"
+        case .cacheExpired:                      return "Session expired, starting discovery"
+        case .error(let m):                      return m
         }
     }
 }

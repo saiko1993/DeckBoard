@@ -74,29 +74,38 @@ enum ConnectionState: Equatable, Sendable {
     case pairing
     case connected(to: PairedDevice)
     case disconnected
+    case reconnectingToLastDevice(name: String)
+    case verifyingTrustedDevice(name: String)
+    case cacheExpired
     case error(message: String)
 
     var displayTitle: String {
         switch self {
-        case .idle:                  return "Idle"
-        case .searching:             return "Searching…"
-        case .found(let name):       return "Found \(name)"
-        case .pairing:               return "Pairing…"
-        case .connected(let device): return "Connected to \(device.displayName)"
-        case .disconnected:          return "Disconnected"
-        case .error(let msg):        return msg
+        case .idle:                              return "Idle"
+        case .searching:                         return "Searching…"
+        case .found(let name):                   return "Found \(name)"
+        case .pairing:                           return "Pairing…"
+        case .connected(let device):             return "Connected to \(device.displayName)"
+        case .disconnected:                      return "Disconnected"
+        case .reconnectingToLastDevice(let name): return "Reconnecting to \(name)…"
+        case .verifyingTrustedDevice(let name):  return "Verifying \(name)…"
+        case .cacheExpired:                      return "Session expired, discovering…"
+        case .error(let msg):                    return msg
         }
     }
 
     var systemImage: String {
         switch self {
-        case .idle:          return "wifi.slash"
-        case .searching:     return "wifi"
-        case .found:         return "wifi.exclamationmark"
-        case .pairing:       return "lock.open.fill"
-        case .connected:     return "checkmark.seal.fill"
-        case .disconnected:  return "wifi.slash"
-        case .error:         return "exclamationmark.triangle.fill"
+        case .idle:                       return "wifi.slash"
+        case .searching:                  return "wifi"
+        case .found:                      return "wifi.exclamationmark"
+        case .pairing:                    return "lock.open.fill"
+        case .connected:                  return "checkmark.seal.fill"
+        case .disconnected:               return "wifi.slash"
+        case .reconnectingToLastDevice:   return "arrow.triangle.2.circlepath"
+        case .verifyingTrustedDevice:     return "lock.shield"
+        case .cacheExpired:               return "clock.arrow.circlepath"
+        case .error:                      return "exclamationmark.triangle.fill"
         }
     }
 

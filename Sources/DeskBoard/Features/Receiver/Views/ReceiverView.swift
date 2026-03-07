@@ -116,23 +116,29 @@ private struct ConnectionStatusRow: View {
 
     private var stateColor: Color {
         switch state {
-        case .connected:    return .green
-        case .searching:    return .blue
-        case .pairing:      return .orange
-        case .error:        return .red
-        default:            return .secondary
+        case .connected:                return .green
+        case .searching:                return .blue
+        case .pairing:                  return .orange
+        case .reconnectingToLastDevice: return .orange
+        case .verifyingTrustedDevice:   return .purple
+        case .cacheExpired:             return .yellow
+        case .error:                    return .red
+        default:                        return .secondary
         }
     }
 
     private var statusSubtitle: String {
         switch state {
-        case .idle:          return "Start by pairing a sender device"
-        case .searching:     return "Looking for nearby sender devices"
-        case .found(let n):  return "Found \(n)"
-        case .pairing:       return "Exchanging credentials"
-        case .connected:     return "Ready to receive commands"
-        case .disconnected:  return "Tap Connect to reconnect"
-        case .error(let m):  return m
+        case .idle:                              return "Start by pairing a sender device"
+        case .searching:                         return "Looking for nearby sender devices"
+        case .found(let n):                      return "Found \(n)"
+        case .pairing:                           return "Exchanging credentials"
+        case .connected:                         return "Ready to receive commands"
+        case .disconnected:                      return "Tap Connect to reconnect"
+        case .reconnectingToLastDevice(let name): return "Reconnecting to \(name)"
+        case .verifyingTrustedDevice(let name):  return "Verifying trust for \(name)"
+        case .cacheExpired:                      return "Session expired, starting discovery"
+        case .error(let m):                      return m
         }
     }
 }

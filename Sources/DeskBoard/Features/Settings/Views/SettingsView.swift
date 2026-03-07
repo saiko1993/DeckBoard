@@ -242,17 +242,23 @@ struct ConnectionBanner: View {
 
     private var bannerBackground: Color {
         switch state {
-        case .searching: return .blue.opacity(0.1)
-        case .error:     return .red.opacity(0.1)
-        default:         return .secondary.opacity(0.08)
+        case .searching:                 return .blue.opacity(0.1)
+        case .reconnectingToLastDevice:  return .orange.opacity(0.1)
+        case .verifyingTrustedDevice:    return .purple.opacity(0.1)
+        case .cacheExpired:              return .yellow.opacity(0.1)
+        case .error:                     return .red.opacity(0.1)
+        default:                         return .secondary.opacity(0.08)
         }
     }
 
     private var bannerForeground: Color {
         switch state {
-        case .searching: return .blue
-        case .error:     return .red
-        default:         return .secondary
+        case .searching:                 return .blue
+        case .reconnectingToLastDevice:  return .orange
+        case .verifyingTrustedDevice:    return .purple
+        case .cacheExpired:              return .yellow
+        case .error:                     return .red
+        default:                         return .secondary
         }
     }
 }
