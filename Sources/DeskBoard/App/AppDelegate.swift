@@ -13,6 +13,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         if role == .sender || role == .receiver {
             application.isIdleTimerDisabled = true
         }
+        registerBackgroundTask()
+        return true
+    }
+
+    private func registerBackgroundTask() {
         do {
             try BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.bgTaskID, using: .main) { task in
                 guard let bgTask = task as? BGAppRefreshTask else {
@@ -24,14 +29,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         } catch {
             print("BGTask registration failed: \(error)")
         }
-        return true
     }
 
     nonisolated func applicationWillTerminate(_ application: UIApplication) {
-        let session = PeerSession.shared
-        let msg = CommandMessage(type: .disconnect, payload: .disconnect, senderID: "DeskBoard")
-        session.send(command: msg)
-        session.stopAll()
+        DispatchQueue.main.async {
+            PeerSession.shared.stopAll()
+        }
     }
 
     nonisolated func applicationDidEnterBackground(_ application: UIApplication) {
@@ -61,8 +64,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             if !session.isConnected {
                 session.attemptQuickReconnect()
             }
+            task.setTaskCompleted(success: true)
         }
-        task.setTaskCompleted(success: true)
         scheduleBGRefresh()
     }
 }

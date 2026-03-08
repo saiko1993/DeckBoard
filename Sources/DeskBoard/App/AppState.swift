@@ -36,6 +36,7 @@ final class AppState: ObservableObject {
     private let trustedDeviceStore: TrustedDeviceStore
     private var cancellables = Set<AnyCancellable>()
     private var hasConfigured = false
+    private var hasBootstrapped = false
 
     init(
         peerSession: PeerSession = .shared,
@@ -45,6 +46,11 @@ final class AppState: ObservableObject {
         self.peerSession = peerSession
         self.dashboardStore = dashboardStore
         self.trustedDeviceStore = trustedDeviceStore
+    }
+
+    func bootstrap() {
+        guard !hasBootstrapped else { return }
+        hasBootstrapped = true
         loadInitialData()
         bindPeerSession()
     }

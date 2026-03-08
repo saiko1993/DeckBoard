@@ -14,7 +14,9 @@ struct DeskBoardApp: App {
                     handleScenePhase(newPhase)
                 }
                 .task {
-                    try? await Task.sleep(for: .milliseconds(300))
+                    try? await Task.sleep(for: .milliseconds(500))
+                    appState.bootstrap()
+                    try? await Task.sleep(for: .milliseconds(200))
                     appState.ensureConnectionActive()
                 }
         }

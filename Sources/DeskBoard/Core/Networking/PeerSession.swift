@@ -124,13 +124,13 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     private func rebuildSession() {
         sessionLock.lock()
-        defer { sessionLock.unlock() }
 
         stopAdvertisingInternal()
         stopBrowsingInternal()
 
         guard !currentDeviceName.isEmpty else {
             isSessionActive = false
+            sessionLock.unlock()
             return
         }
 
@@ -146,6 +146,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         sessionGeneration &+= 1
         isSessionActive = true
         lastDataReceivedTime = Date()
+        sessionLock.unlock()
     }
 
     private func loadOrCreatePeerID(displayName: String) -> MCPeerID {
@@ -166,8 +167,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     func startAdvertising() {
         sessionLock.lock()
-        defer { sessionLock.unlock() }
-        guard let pid = peerID, let _ = session else { return }
+        guard let pid = peerID, let _ = session else {
+            sessionLock.unlock()
+            return
+        }
         stopAdvertisingInternal()
         let info: [String: String] = [
             "role": currentRole.rawValue,
@@ -179,7 +182,9 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         adv.delegate = self
         adv.startAdvertisingPeer()
         advertiser = adv
-        if !isConnected {
+        let connected = session?.connectedPeers.isEmpty == false
+        sessionLock.unlock()
+        if !connected {
             updateOnMain { self.connectionState = .searching }
         }
     }
@@ -198,14 +203,18 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     func startBrowsing() {
         sessionLock.lock()
-        defer { sessionLock.unlock() }
-        guard let pid = peerID, let _ = session else { return }
+        guard let pid = peerID, let _ = session else {
+            sessionLock.unlock()
+            return
+        }
         stopBrowsingInternal()
         let brw = MCNearbyServiceBrowser(peer: pid, serviceType: serviceType)
         brw.delegate = self
         brw.startBrowsingForPeers()
         browser = brw
-        if !isConnected {
+        let connected = session?.connectedPeers.isEmpty == false
+        sessionLock.unlock()
+        if !connected {
             updateOnMain { self.connectionState = .searching }
         }
     }
@@ -220,7 +229,6 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         browser?.stopBrowsingForPeers()
         browser?.delegate = nil
         browser = nil
-        updateOnMain { self.discoveredPeers = [] }
     }
 
     func startAllServices() {
@@ -245,6 +253,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         stopAdvertisingInternal()
         stopBrowsingInternal()
         session?.disconnect()
+        session?.delegate = nil
         sessionLock.unlock()
         updateOnMain {
             self.connectionState = .idle
@@ -305,6 +314,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         updateOnMain {
             self.connectionState = .disconnected
             self.connectedPeerNames = []
+            self.discoveredPeers = []
         }
     }
 
@@ -470,10 +480,13 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     }
 
     private func handleStaleConnection() {
-        guard isConnected else { return }
         sessionLock.lock()
-        session?.disconnect()
+        let connected = session?.connectedPeers.isEmpty == false
+        if connected {
+            session?.disconnect()
+        }
         sessionLock.unlock()
+        guard connected else { return }
 
         updateOnMain {
             self.connectedPeerNames = []
