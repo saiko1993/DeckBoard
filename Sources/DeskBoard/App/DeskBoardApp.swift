@@ -13,7 +13,8 @@ struct DeskBoardApp: App {
                 .onChange(of: scenePhase) { _, newPhase in
                     handleScenePhase(newPhase)
                 }
-                .onAppear {
+                .task {
+                    try? await Task.sleep(for: .milliseconds(300))
                     appState.ensureConnectionActive()
                 }
         }

@@ -5,14 +5,14 @@ import KeychainAccess
 
 private let peerLog = Logger(subsystem: "com.deskboard", category: "PeerSession")
 
-struct IncomingPairingRequest: @unchecked Sendable, Identifiable {
+nonisolated struct IncomingPairingRequest: @unchecked Sendable, Identifiable {
     var id: String { peerID.displayName }
     let peerID: MCPeerID
     let deviceName: String
     let deviceRole: String
 }
 
-struct DiscoveredPeer: Identifiable, @unchecked Sendable {
+nonisolated struct DiscoveredPeer: Identifiable, @unchecked Sendable {
     let id: String
     let peerID: MCPeerID
     let role: DeviceRole?
@@ -51,6 +51,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private let maxReconnectAttempts: Int = 500
     private var lastConnectedPeerName: String?
     private var isSessionActive: Bool = false
+    private var sessionGeneration: UInt64 = 0
     private var lastDataReceivedTime: Date = Date()
     private var lastHeartbeatSentTime: Date = Date()
     private var isReconnecting: Bool = false
@@ -128,6 +129,11 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         stopAdvertisingInternal()
         stopBrowsingInternal()
 
+        guard !currentDeviceName.isEmpty else {
+            isSessionActive = false
+            return
+        }
+
         let pid = loadOrCreatePeerID(displayName: currentDeviceName)
         peerID = pid
 
@@ -137,6 +143,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         let sess = MCSession(peer: pid, securityIdentity: nil, encryptionPreference: .required)
         sess.delegate = self
         session = sess
+        sessionGeneration &+= 1
         isSessionActive = true
         lastDataReceivedTime = Date()
     }
@@ -650,6 +657,7 @@ extension PeerSession: MCSessionDelegate {
         let peerName = peerID.displayName
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            guard self.session === session else { return }
             switch state {
             case .connected:
                 if !self.connectedPeerNames.contains(peerName) {
@@ -697,15 +705,18 @@ extension PeerSession: MCSessionDelegate {
 
     nonisolated func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
         let enc = CommandEncoder()
+        let peerName = peerID.displayName
         do {
             let message = try enc.decode(data)
             DispatchQueue.main.async { [weak self] in
-                self?.lastDataReceivedTime = Date()
-                self?.handleIncoming(message, from: peerID.displayName)
+                guard let self, self.session === session else { return }
+                self.lastDataReceivedTime = Date()
+                self.handleIncoming(message, from: peerName)
             }
         } catch {
             DispatchQueue.main.async { [weak self] in
-                self?.lastDataReceivedTime = Date()
+                guard let self, self.session === session else { return }
+                self.lastDataReceivedTime = Date()
             }
         }
     }

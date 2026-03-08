@@ -13,24 +13,31 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         if role == .sender || role == .receiver {
             application.isIdleTimerDisabled = true
         }
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.bgTaskID, using: .main) { task in
-            guard let bgTask = task as? BGAppRefreshTask else { return }
-            Self.performBGRefresh(bgTask)
+        do {
+            try BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.bgTaskID, using: .main) { task in
+                guard let bgTask = task as? BGAppRefreshTask else {
+                    task.setTaskCompleted(success: false)
+                    return
+                }
+                Self.performBGRefresh(bgTask)
+            }
+        } catch {
+            print("BGTask registration failed: \(error)")
         }
         return true
     }
 
     nonisolated func applicationWillTerminate(_ application: UIApplication) {
         let session = PeerSession.shared
-        let name = "DeskBoard"
-        let msg = CommandMessage(type: .disconnect, payload: .disconnect, senderID: name)
+        let msg = CommandMessage(type: .disconnect, payload: .disconnect, senderID: "DeskBoard")
         session.send(command: msg)
-        Thread.sleep(forTimeInterval: 0.3)
         session.stopAll()
     }
 
     nonisolated func applicationDidEnterBackground(_ application: UIApplication) {
-        PeerSession.shared.enterBackground()
+        DispatchQueue.main.async {
+            PeerSession.shared.enterBackground()
+        }
         Self.scheduleBGRefresh()
     }
 
@@ -49,9 +56,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         task.expirationHandler = {
             task.setTaskCompleted(success: false)
         }
-        let session = PeerSession.shared
-        if !session.isConnected {
-            session.attemptQuickReconnect()
+        DispatchQueue.main.async {
+            let session = PeerSession.shared
+            if !session.isConnected {
+                session.attemptQuickReconnect()
+            }
         }
         task.setTaskCompleted(success: true)
         scheduleBGRefresh()

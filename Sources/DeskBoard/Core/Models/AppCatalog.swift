@@ -1,6 +1,6 @@
 import Foundation
 
-struct AppShortcut: Identifiable, Hashable, Sendable {
+nonisolated struct AppShortcut: Identifiable, Hashable, Sendable {
     let id: String
     let name: String
     let urlScheme: String
@@ -28,7 +28,7 @@ struct AppShortcut: Identifiable, Hashable, Sendable {
     }
 }
 
-enum AppCategory: String, CaseIterable, Sendable {
+nonisolated enum AppCategory: String, CaseIterable, Sendable {
     case social = "Social"
     case entertainment = "Entertainment"
     case productivity = "Productivity"
@@ -58,7 +58,7 @@ enum AppCategory: String, CaseIterable, Sendable {
     }
 }
 
-enum AppCatalog {
+nonisolated enum AppCatalog {
     static let allApps: [AppShortcut] = [
         AppShortcut(id: "youtube", name: "YouTube", urlScheme: "youtube://", icon: "play.rectangle.fill", colorHex: "#FF0000", category: .entertainment),
         AppShortcut(id: "spotify", name: "Spotify", urlScheme: "spotify://", icon: "music.note", colorHex: "#1DB954", category: .entertainment),

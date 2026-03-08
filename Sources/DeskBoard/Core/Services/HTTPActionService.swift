@@ -74,7 +74,7 @@ final class HTTPActionService: @unchecked Sendable {
     }
 }
 
-enum ActionError: Error, LocalizedError, Sendable {
+nonisolated enum ActionError: Error, LocalizedError, Sendable {
     case invalidURL(String)
     case invalidResponse
     case httpError(statusCode: Int, body: String?)

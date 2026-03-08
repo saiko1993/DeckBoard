@@ -1,6 +1,6 @@
 import Foundation
 
-enum ButtonAction: Codable, Hashable, Sendable {
+nonisolated enum ButtonAction: Codable, Hashable, Sendable {
     case none
     case openURL(url: String)
     case sendText(text: String)
