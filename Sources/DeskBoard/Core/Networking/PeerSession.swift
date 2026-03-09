@@ -61,6 +61,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private var staleMissCount: Int = 0
     private var isReconnecting: Bool = false
     private var pendingInvitePeers: Set<String> = []
+    private var pendingInviteTimestamps: [String: Date] = [:]
     private var isInForeground: Bool = true
     private var backgroundNetworkingEnabled: Bool = false
     private var isServicesRunning: Bool = false
@@ -68,6 +69,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     private let staleConnectionTimeout: TimeInterval = 90
     private let maxStaleMisses: Int = 3
+    private let inviteRetryCooldown: TimeInterval = 12
     private var canRunNetworking: Bool { isInForeground || backgroundNetworkingEnabled }
 
     private let timerQueue = DispatchQueue(label: "com.deskboard.peersession.timers", qos: .userInitiated)
@@ -145,7 +147,11 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         reconnectAttempts = 0
         isReconnecting = false
         pendingInvitePeers = []
+        pendingInviteTimestamps = [:]
         staleMissCount = 0
+        let cached = loadLastConnectedPeer()
+        lastConnectedPeerUUID = cached.uuid
+        lastConnectedPeerName = cached.name
         rebuildSession()
     }
 
@@ -174,7 +180,15 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         isSessionActive = true
         lastDataReceivedTime = Date()
         staleMissCount = 0
+        pendingInvitePeers = []
+        pendingInviteTimestamps = [:]
         sessionLock.unlock()
+
+        updateOnMain {
+            self.connectedPeerNames = []
+            self.discoveredPeers = []
+            self.incomingPairingRequest = nil
+        }
     }
 
     private func loadOrCreatePeerID(displayName: String) -> MCPeerID {
@@ -277,6 +291,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         isEnteringForeground = false
         backgroundNetworkingEnabled = false
         pendingInvitePeers = []
+        pendingInviteTimestamps = [:]
         staleMissCount = 0
         BackgroundKeepAliveService.shared.stop()
         cancelAllTimers()
@@ -294,16 +309,24 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     }
 
     func invite(peer: DiscoveredPeer) {
+        pruneExpiredPendingInvites()
+        let inviteKey = invitationKey(for: peer)
+        if let startedAt = pendingInviteTimestamps[inviteKey],
+           Date().timeIntervalSince(startedAt) < inviteRetryCooldown {
+            return
+        }
+
         sessionLock.lock()
         guard let session else {
             sessionLock.unlock()
             return
         }
-        guard !pendingInvitePeers.contains(peer.id) else {
+        guard !pendingInvitePeers.contains(inviteKey) else {
             sessionLock.unlock()
             return
         }
-        pendingInvitePeers.insert(peer.id)
+        pendingInvitePeers.insert(inviteKey)
+        pendingInviteTimestamps[inviteKey] = Date()
         let context = InvitationContext(
             deviceUUID: Self.stableDeviceUUID,
             pairingToken: Self.pairingToken,
@@ -345,6 +368,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         isEnteringForeground = false
         backgroundNetworkingEnabled = false
         pendingInvitePeers = []
+        pendingInviteTimestamps = [:]
         staleMissCount = 0
         BackgroundKeepAliveService.shared.stop()
         cancelAllTimers()
@@ -376,6 +400,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         backgroundNetworkingEnabled = false
         BackgroundKeepAliveService.shared.stop()
         isReconnecting = false
+        pendingInvitePeers = []
+        pendingInviteTimestamps = [:]
         stopReconnectTimer()
     }
 
@@ -426,6 +452,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         guard autoReconnectEnabled, currentRole != .unset else { return }
         guard reconnectAttempts < maxReconnectAttempts else { return }
         guard !isReconnecting else { return }
+        pruneExpiredPendingInvites()
         stopReconnectTimer()
 
         let delay = currentReconnectInterval
@@ -464,6 +491,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
         reconnectAttempts += 1
         isReconnecting = false
+        pruneExpiredPendingInvites()
 
         if reconnectAttempts % 10 == 0 {
             rebuildSession()
@@ -472,12 +500,19 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
         startAllServices()
 
-        if let lastPeer = lastConnectedPeerName {
-            for peer in discoveredPeers where peer.id == lastPeer {
-                if shouldInitiateConnection(to: peer.peerID, remoteDeviceUUID: peer.deviceUUID) {
-                    invite(peer: peer)
-                }
-                break
+        if let lastUUID = lastConnectedPeerUUID,
+           let peer = discoveredPeers.first(where: { $0.deviceUUID == lastUUID }) {
+            if shouldInitiateConnection(to: peer.peerID, remoteDeviceUUID: peer.deviceUUID) {
+                invite(peer: peer)
+            }
+            scheduleReconnect()
+            return
+        }
+
+        if let lastPeer = lastConnectedPeerName,
+           let peer = discoveredPeers.first(where: { $0.id == lastPeer }) {
+            if shouldInitiateConnection(to: peer.peerID, remoteDeviceUUID: peer.deviceUUID) {
+                invite(peer: peer)
             }
         }
 
@@ -570,8 +605,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         stopStaleCheckTimer()
         staleMissCount = 0
         isServicesRunning = false
+        pruneExpiredPendingInvites()
         if autoReconnectEnabled && canRunNetworking {
             pendingInvitePeers = []
+            pendingInviteTimestamps = [:]
             rebuildSession()
             startAllServices()
             scheduleReconnect()
@@ -692,6 +729,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         guard autoReconnectEnabled else { return }
         guard currentRole != .unset, !currentDeviceName.isEmpty else { return }
         guard !isConnected else { return }
+        pendingInvitePeers = []
+        pendingInviteTimestamps = [:]
         rebuildSession()
         startAllServices()
     }
@@ -736,6 +775,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     func restartServices() {
         guard currentRole != .unset, !currentDeviceName.isEmpty else { return }
+        pruneExpiredPendingInvites()
         if !isConnected {
             rebuildSession()
             isServicesRunning = false
@@ -752,6 +792,26 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         } else {
             DispatchQueue.main.async(execute: block)
         }
+    }
+
+    private func invitationKey(for peer: DiscoveredPeer) -> String {
+        peer.deviceUUID ?? peer.id
+    }
+
+    private func clearPendingInvite(keys: [String]) {
+        for key in keys where !key.isEmpty {
+            pendingInvitePeers.remove(key)
+            pendingInviteTimestamps.removeValue(forKey: key)
+        }
+    }
+
+    private func pruneExpiredPendingInvites() {
+        guard !pendingInviteTimestamps.isEmpty else { return }
+        let now = Date()
+        let expired = pendingInviteTimestamps.compactMap { key, startedAt in
+            now.timeIntervalSince(startedAt) >= inviteRetryCooldown ? key : nil
+        }
+        clearPendingInvite(keys: expired)
     }
 }
 
@@ -773,6 +833,7 @@ extension PeerSession: MCSessionDelegate {
                 self.reconnectAttempts = 0
                 self.isReconnecting = false
                 self.pendingInvitePeers = []
+                self.pendingInviteTimestamps = [:]
                 self.stopReconnectTimer()
                 self.lastDataReceivedTime = Date()
                 self.staleMissCount = 0
@@ -796,7 +857,8 @@ extension PeerSession: MCSessionDelegate {
 
             case .notConnected:
                 self.connectedPeerNames.removeAll { $0 == peerName }
-                self.pendingInvitePeers.remove(peerName)
+                let peerUUID = self.discoveredPeers.first(where: { $0.id == peerName })?.deviceUUID
+                self.clearPendingInvite(keys: [peerName, peerUUID ?? ""])
                 if self.connectedPeerNames.isEmpty {
                     self.connectionState = .disconnected
                     self.onConnectionLost()
@@ -958,6 +1020,7 @@ extension PeerSession: MCNearbyServiceBrowserDelegate {
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            self.pruneExpiredPendingInvites()
             if let role, role == self.currentRole {
                 return
             }
@@ -975,8 +1038,10 @@ extension PeerSession: MCNearbyServiceBrowserDelegate {
 
     nonisolated func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
         DispatchQueue.main.async { [weak self] in
-            self?.discoveredPeers.removeAll { $0.id == peerID.displayName }
-            self?.pendingInvitePeers.remove(peerID.displayName)
+            guard let self else { return }
+            let peerUUID = self.discoveredPeers.first(where: { $0.id == peerID.displayName })?.deviceUUID
+            self.discoveredPeers.removeAll { $0.id == peerID.displayName }
+            self.clearPendingInvite(keys: [peerID.displayName, peerUUID ?? ""])
         }
     }
 

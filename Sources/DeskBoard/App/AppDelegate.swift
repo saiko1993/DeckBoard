@@ -1,9 +1,11 @@
 import UIKit
 @preconcurrency import BackgroundTasks
+import os.log
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
     nonisolated private static let bgTaskID = "com.deskboard.connection-keepalive"
+    nonisolated private static let appLog = Logger(subsystem: "com.deskboard", category: "AppDelegate")
 
     func application(
         _ application: UIApplication,
@@ -13,7 +15,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         if role == .sender || role == .receiver {
             application.isIdleTimerDisabled = true
         }
+
         registerBackgroundTask()
+        application.registerForRemoteNotifications()
         Self.scheduleBGRefresh()
         return true
     }
@@ -40,6 +44,37 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     func applicationWillEnterForeground(_ application: UIApplication) {
         UIApplication.shared.isIdleTimerDisabled = true
+    }
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        let token = deviceToken.map { String(format: "%02x", $0) }.joined()
+        AppConfiguration.pushToken = token
+        Self.appLog.info("PUSH-001 Registered APNs token")
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        Self.appLog.error("PUSH-002 APNs registration failed: \(String(describing: error), privacy: .public)")
+    }
+
+    @MainActor
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        let session = PeerSession.shared
+        guard AppConfiguration.autoReconnect else {
+            completionHandler(.noData)
+            return
+        }
+
+        if !session.isConnected {
+            session.attemptQuickReconnect()
+            completionHandler(.newData)
+            return
+        }
+
+        completionHandler(.noData)
     }
 
     nonisolated private static func scheduleBGRefresh() {

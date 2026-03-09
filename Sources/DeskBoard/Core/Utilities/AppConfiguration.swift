@@ -18,6 +18,7 @@ enum AppConfiguration {
         static let silentReceiver = "com.deskboard.silentReceiver"
         static let autoReconnect = "com.deskboard.autoReconnect"
         static let defaultColumns = "com.deskboard.defaultColumns"
+        static let pushToken = "com.deskboard.pushToken"
     }
 
     // MARK: - Defaults
@@ -59,6 +60,11 @@ enum AppConfiguration {
     static var defaultColumns: Int {
         get { UserDefaults.standard.object(forKey: Keys.defaultColumns) as? Int ?? 3 }
         set { UserDefaults.standard.set(newValue, forKey: Keys.defaultColumns) }
+    }
+
+    static var pushToken: String? {
+        get { UserDefaults.standard.string(forKey: Keys.pushToken) }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.pushToken) }
     }
 }
 
