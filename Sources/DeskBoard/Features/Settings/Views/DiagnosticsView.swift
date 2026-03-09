@@ -5,6 +5,8 @@ struct DiagnosticsView: View {
     @State private var testURL: String = ""
     @State private var testResult: String?
     @State private var isTesting = false
+    @State private var isCheckingRelayCapabilities = false
+    @State private var relayCapabilitiesResult: String?
 
     var body: some View {
         List {
@@ -72,6 +74,25 @@ struct DiagnosticsView: View {
                 InfoRow(label: "Queued Foreground Actions", value: "\(appState.deferredCommandCount)")
                 InfoRow(label: "Mac Relay Enabled", value: AppConfiguration.backgroundRelayEnabled ? "Yes" : "No")
                 InfoRow(label: "Mac Relay URL", value: AppConfiguration.backgroundRelayURL.trimmed.isEmpty ? "Not set" : "Configured")
+
+                Button {
+                    checkRelayCapabilities()
+                } label: {
+                    HStack {
+                        Text("Check Relay Capabilities")
+                        Spacer()
+                        if isCheckingRelayCapabilities {
+                            ProgressView().scaleEffect(0.8)
+                        }
+                    }
+                }
+                .disabled(!AppConfiguration.backgroundRelayEnabled || AppConfiguration.backgroundRelayBaseURL == nil || isCheckingRelayCapabilities)
+
+                if let relayCapabilitiesResult {
+                    Text(relayCapabilitiesResult)
+                        .font(.caption)
+                        .foregroundStyle(relayCapabilitiesResult.contains("✓") ? .green : .secondary)
+                }
             }
 
             if appState.deviceRole == .sender {
@@ -122,6 +143,49 @@ struct DiagnosticsView: View {
             return false
         }.count
     }
+
+    private func checkRelayCapabilities() {
+        guard let baseURL = AppConfiguration.backgroundRelayBaseURL else {
+            relayCapabilitiesResult = "Relay URL is not configured"
+            return
+        }
+
+        isCheckingRelayCapabilities = true
+        relayCapabilitiesResult = nil
+
+        Task {
+            defer { isCheckingRelayCapabilities = false }
+
+            var request = URLRequest(url: baseURL.appendingPathComponent("v1/capabilities"))
+            request.httpMethod = "GET"
+            if let key = AppConfiguration.backgroundRelayAPIKey?.trimmed, !key.isEmpty {
+                request.setValue(key, forHTTPHeaderField: "x-deskboard-key")
+            }
+
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let http = response as? HTTPURLResponse else {
+                    relayCapabilitiesResult = "Relay response is invalid"
+                    return
+                }
+                guard (200...299).contains(http.statusCode) else {
+                    relayCapabilitiesResult = "Relay check failed (HTTP \(http.statusCode))"
+                    return
+                }
+
+                let payload = try JSONDecoder().decode(RelayCapabilitiesResponse.self, from: data)
+                relayCapabilitiesResult = "✓ Relay online, \(payload.capabilities.count) capabilities"
+            } catch {
+                relayCapabilitiesResult = "Relay check failed: \(error.localizedDescription)"
+            }
+        }
+    }
+}
+
+private struct RelayCapabilitiesResponse: Codable {
+    let ok: Bool
+    let service: String?
+    let capabilities: [String]
 }
 
 private struct InfoRow: View {
