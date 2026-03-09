@@ -43,6 +43,7 @@ final class AppState: ObservableObject {
     private var configuredRole: DeviceRole = .unset
     private var configuredDeviceName: String = ""
     private var deferredForegroundActions: [DeferredExecutionAction] = []
+    private var pendingQuickIntentActions: [ButtonAction] = []
     private var pendingSentCommands: [UUID: PendingSentCommand] = [:]
     private let stateLog = Logger(subsystem: "com.deskboard", category: "AppState")
     private let executionRouter = ExecutionRouter.shared
@@ -80,6 +81,7 @@ final class AppState: ObservableObject {
                 self.connectionState = state
                 if state.isConnected {
                     self.resendPendingCommandsOnReconnect()
+                    self.flushPendingQuickIntentActionsIfNeeded()
                 }
             }
             .store(in: &cancellables)
@@ -121,7 +123,7 @@ final class AppState: ObservableObject {
         peerSession.setAutoReconnectEnabled(AppConfiguration.autoReconnect)
         peerSession.enterForeground()
         flushDeferredForegroundActionsIfNeeded()
-        handlePendingIntentActionIfNeeded()
+        flushPendingQuickIntentActionsIfNeeded()
     }
 
     func handleEnteredBackground() {
@@ -699,36 +701,36 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func handlePendingIntentActionIfNeeded() {
-        guard let raw = UserDefaults.standard.string(forKey: AppConfiguration.Keys.pendingIntentAction) else {
+    func handleIncomingURL(_ url: URL) {
+        guard let scheme = url.scheme?.lowercased(), scheme == "deskboard" else { return }
+        let host = (url.host ?? "").lowercased()
+        let path = url.path.lowercased()
+        guard host == "quick" || path == "/quick" else { return }
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let raw = components.queryItems?.first(where: { $0.name == "action" })?.value?.trimmed,
+              !raw.isEmpty else {
             return
         }
-        UserDefaults.standard.removeObject(forKey: AppConfiguration.Keys.pendingIntentAction)
+        triggerQuickIntentAction(raw)
+    }
 
-        let action: ButtonAction
-        switch raw {
-        case "media_play_pause":
-            action = .mediaPlayPause
-        case "media_volume_up":
-            action = .mediaVolumeUp
-        case "media_volume_down":
-            action = .mediaVolumeDown
-        case "media_next":
-            action = .mediaNext
-        case "media_previous":
-            action = .mediaPrevious
-        default:
-            return
-        }
+    func triggerQuickIntentAction(_ raw: String) {
+        guard let action = quickIntentButtonAction(for: raw) else { return }
+        runQuickIntentAction(action)
+    }
 
+    private func runQuickIntentAction(_ action: ButtonAction) {
         switch deviceRole {
         case .sender:
-            let quickButton = DeskButton(
-                title: "Quick Action",
-                icon: action.systemImage,
-                action: action
-            )
-            send(action: action, button: quickButton)
+            guard connectionState.isConnected else {
+                pendingQuickIntentActions.append(action)
+                if pendingQuickIntentActions.count > 20 {
+                    pendingQuickIntentActions.removeFirst(pendingQuickIntentActions.count - 20)
+                }
+                ensureConnectionActive()
+                return
+            }
+            send(action: action, button: quickIntentButton(for: action))
 
         case .receiver:
             Task { @MainActor in
@@ -738,6 +740,51 @@ final class AppState: ObservableObject {
         case .unset:
             break
         }
+    }
+
+    private func flushPendingQuickIntentActionsIfNeeded() {
+        guard deviceRole == .sender, connectionState.isConnected else { return }
+        guard !pendingQuickIntentActions.isEmpty else { return }
+        let pending = pendingQuickIntentActions
+        pendingQuickIntentActions.removeAll()
+        for action in pending {
+            send(action: action, button: quickIntentButton(for: action))
+        }
+    }
+
+    private func quickIntentButtonAction(for raw: String) -> ButtonAction? {
+        switch raw {
+        case "media_play_pause":
+            return .mediaPlayPause
+        case "media_volume_up":
+            return .mediaVolumeUp
+        case "media_volume_down":
+            return .mediaVolumeDown
+        case "media_next":
+            return .mediaNext
+        case "media_previous":
+            return .mediaPrevious
+        default:
+            return nil
+        }
+    }
+
+    private func quickIntentButton(for action: ButtonAction) -> DeskButton {
+        let config = ButtonConfig(
+            targetPolicy: .preferReceiver,
+            backgroundFallback: .relay,
+            retryCount: 1,
+            timeoutSeconds: 12
+        )
+        return DeskButton(
+            title: "Quick Action",
+            subtitle: "Intent",
+            icon: action.systemImage,
+            colorHex: "#007AFF",
+            action: action,
+            position: 0,
+            config: config
+        )
     }
 
     func disconnect() {

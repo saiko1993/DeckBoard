@@ -220,6 +220,12 @@ private struct _SettingsViewBody: View {
                     }
 
                     NavigationLink {
+                        IntentControlsView()
+                    } label: {
+                        Label("Intent Controls", systemImage: "bolt.badge.clock")
+                    }
+
+                    NavigationLink {
                         ExecutionLogView()
                     } label: {
                         Label("Execution History", systemImage: "list.bullet.rectangle")

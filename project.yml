@@ -52,6 +52,10 @@ targets:
         CFBundleVersion: "17"
         CFBundleShortVersionString: "1.0.0"
         CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleURLTypes:
+          - CFBundleURLName: com.deskboard.app
+            CFBundleURLSchemes:
+              - deskboard
         UILaunchScreen:
           UIColorName: ""
         UIApplicationSceneManifest:
@@ -111,6 +115,8 @@ targets:
     dependencies:
       - package: KeychainAccess
       - sdk: MultipeerConnectivity.framework
+      - target: DeskBoardControls
+        embed: true
     settings:
       base:
         INFOPLIST_FILE: Resources/Info.plist
@@ -151,11 +157,36 @@ targets:
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/DeskBoard.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DeskBoard
         BUNDLE_LOADER: $(TEST_HOST)
 
+  DeskBoardControls:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: Sources/DeskBoardWidget
+      - path: Sources/DeskBoard/App/DeskBoardIntents.swift
+    info:
+      path: Resources/DeskBoardWidget/Info.plist
+      properties:
+        CFBundleDisplayName: DeskBoard Controls
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "17"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.deskboard.app.controls
+        INFOPLIST_FILE: Resources/DeskBoardWidget/Info.plist
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: $(DEVELOPMENT_TEAM)
+        PROVISIONING_PROFILE_SPECIFIER: $(PROVISIONING_PROFILE_SPECIFIER)
+        APPLICATION_EXTENSION_API_ONLY: YES
+
 schemes:
   DeskBoard:
     build:
       targets:
         DeskBoard: all
+        DeskBoardControls: all
         DeskBoardTests: [test]
     run:
       config: Debug

@@ -13,6 +13,9 @@ struct DeskBoardApp: App {
                 .onChange(of: scenePhase) { newPhase in
                     handleScenePhase(newPhase)
                 }
+                .onOpenURL { url in
+                    appState.handleIncomingURL(url)
+                }
                 .task {
                     try? await Task.sleep(for: .milliseconds(500))
                     appState.bootstrap()

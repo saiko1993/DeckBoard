@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		038893A8A49234934A58CDCB /* MediaControlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3E7B462F833C22CC81EE7D1 /* MediaControlService.swift */; };
 		1084FAC4F95A3F8684FE98D2 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8B46C2DF460D2E35BD545C /* RootView.swift */; };
+		1207FE1BB5AC2BF341B5593A /* DeskBoardControlWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D62589EF7002C2A00734FF7F /* DeskBoardControlWidgetBundle.swift */; };
 		15085774CCF00862CAA2FE69 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = E002A82D44BA31CF6758FD5E /* KeychainAccess */; };
 		160033287F93FD25ECEB06C9 /* RoleSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E917D7DF095017B455B5B47D /* RoleSelectionView.swift */; };
 		1D750A9F1382A2F632105CA1 /* NearbyDevicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1AFC241122CF1DD5DD37590 /* NearbyDevicesView.swift */; };
@@ -39,11 +40,16 @@
 		7F55DDEF6D16103C2B45A4B9 /* ActionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEA3DEDA61429A208D8C1897 /* ActionEngine.swift */; };
 		803BAC28CE442DD5FBF63CC3 /* ActionPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B606D23F8E79ED06B02C95 /* ActionPayload.swift */; };
 		81F9DFCEEAA3394E65EC19B1 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E45C5897E702473ACB4C8D /* Extensions.swift */; };
+		85BC506AB76E873BB83FC61E /* DeskBoardControlCenterWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A5B18A2F35BB65F59DECA8 /* DeskBoardControlCenterWidgets.swift */; };
 		8637FE17E8E5DF33AAF50453 /* ButtonActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29379A2600DAD046CB33CA62 /* ButtonActionTests.swift */; };
 		89438BF872947251193A2832 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 694C09EE73BB00D1E7AA38C9 /* OnboardingView.swift */; };
 		903CE5032B5CE49533BC8CC8 /* VolumeKnobView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60183CE1720A00C40C9197C /* VolumeKnobView.swift */; };
+		9635191CDA121D04026A701A /* DeskBoardControls.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2DE8DB63B48ACDC9CFD7BEC9 /* DeskBoardControls.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A3AE0E62CC6A2C1C4F1D01F0 /* IntentControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CBE0EE83023CE06DBE3B2E9 /* IntentControlsView.swift */; };
+		A68A39451E3DDC6814DD3F2A /* DeskBoardQuickActionsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E43BB638A9FE1E4B05B2A680 /* DeskBoardQuickActionsWidget.swift */; };
 		B6668640A482AC6742B427B1 /* ButtonEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F2D5C3FDDC8E31C043891FD /* ButtonEditorViewModel.swift */; };
 		B709320F900DB3D874CF6121 /* FullscreenDeckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BAA19941D3026DCAA54EC94 /* FullscreenDeckView.swift */; };
+		BD9917C46DF828B815B84E0C /* DeskBoardIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AA2F0E09ED693B4CD1B2042 /* DeskBoardIntents.swift */; };
 		C5388FE63A025972A09C52CD /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EDF287A9F85F2E505B0E5FB /* DiagnosticsView.swift */; };
 		C7ACE3C4650E56A27474284C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE8DF0CBABB87977F0059F8 /* SettingsView.swift */; };
 		CA525B5C3EC56CCE398B2650 /* ButtonAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FB650998C6A688CFDEA00D7 /* ButtonAction.swift */; };
@@ -66,6 +72,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		A63992EB5451F3FEADC875F6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8454F5BADAE8EDABF0519294 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FC41A67A39A771896EB98558;
+			remoteInfo = DeskBoardControls;
+		};
 		D8ACFCB8407D87A7E2FDB63F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8454F5BADAE8EDABF0519294 /* Project object */;
@@ -75,6 +88,20 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		F5A34446CCC569B727A2BC48 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				9635191CDA121D04026A701A /* DeskBoardControls.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		01632B24A306ADB81C658160 /* AppCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCatalog.swift; sourceTree = "<group>"; };
 		06507842F60C96922170EB84 /* ExecutionLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionLogView.swift; sourceTree = "<group>"; };
@@ -82,6 +109,7 @@
 		0EE996094FFA7DC7E33FE3EC /* CommandEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandEncoder.swift; sourceTree = "<group>"; };
 		0FB650998C6A688CFDEA00D7 /* ButtonAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonAction.swift; sourceTree = "<group>"; };
 		1031EF7D369C44C4E1956153 /* CommandMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandMessage.swift; sourceTree = "<group>"; };
+		11A5B18A2F35BB65F59DECA8 /* DeskBoardControlCenterWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskBoardControlCenterWidgets.swift; sourceTree = "<group>"; };
 		17CCEF3B3488D0D17EC0FAB7 /* DashboardModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardModelTests.swift; sourceTree = "<group>"; };
 		19E4AB6DB62BA49725531E72 /* ExecutionRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionRouter.swift; sourceTree = "<group>"; };
 		1AC399DD0B1B144BA26D68EC /* BackupFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupFormat.swift; sourceTree = "<group>"; };
@@ -89,12 +117,14 @@
 		29379A2600DAD046CB33CA62 /* ButtonActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonActionTests.swift; sourceTree = "<group>"; };
 		2CA53F9C328D42DAAC8AB856 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		2D8CA8351E9F423A5B17F661 /* IncomingCommandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingCommandView.swift; sourceTree = "<group>"; };
+		2DE8DB63B48ACDC9CFD7BEC9 /* DeskBoardControls.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = DeskBoardControls.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2F2D5C3FDDC8E31C043891FD /* ButtonEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonEditorViewModel.swift; sourceTree = "<group>"; };
 		3BAA19941D3026DCAA54EC94 /* FullscreenDeckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenDeckView.swift; sourceTree = "<group>"; };
 		3DDBB72D105D2E9FEDB1BA32 /* TrustedDeviceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedDeviceStore.swift; sourceTree = "<group>"; };
 		46CAE8A06C795AFDD73CC38A /* DeskBoardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskBoardApp.swift; sourceTree = "<group>"; };
 		694C09EE73BB00D1E7AA38C9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		69B3F407D05332EF85FC3A82 /* DeskBoard.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = DeskBoard.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6CBE0EE83023CE06DBE3B2E9 /* IntentControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentControlsView.swift; sourceTree = "<group>"; };
 		70EE7F2CDE9D90AD430C6237 /* ExecutionPolicies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionPolicies.swift; sourceTree = "<group>"; };
 		72F57A454D610ACA08696CA3 /* ReceiverViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiverViewModel.swift; sourceTree = "<group>"; };
 		755B462B261DFF0D6D5F3FB1 /* BackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupService.swift; sourceTree = "<group>"; };
@@ -126,10 +156,12 @@
 		D193EC327DB7955B0BFFBD4C /* PairingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingViewModel.swift; sourceTree = "<group>"; };
 		D2EBE2BC8A348CC42F761117 /* PairedDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairedDevice.swift; sourceTree = "<group>"; };
 		D60183CE1720A00C40C9197C /* VolumeKnobView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeKnobView.swift; sourceTree = "<group>"; };
+		D62589EF7002C2A00734FF7F /* DeskBoardControlWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskBoardControlWidgetBundle.swift; sourceTree = "<group>"; };
 		D75EA962BB841FC5E1490454 /* DashboardGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardGridView.swift; sourceTree = "<group>"; };
 		DB6B68D62474E21484E064BD /* Dashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dashboard.swift; sourceTree = "<group>"; };
 		E05D2C7E468650A2153E83E7 /* DeskBoard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DeskBoard.entitlements; sourceTree = "<group>"; };
 		E16C86FBEAA80ABF01B09C90 /* ButtonState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonState.swift; sourceTree = "<group>"; };
+		E43BB638A9FE1E4B05B2A680 /* DeskBoardQuickActionsWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskBoardQuickActionsWidget.swift; sourceTree = "<group>"; };
 		E4F3DCEAFC3512088E031018 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		E6E45C5897E702473ACB4C8D /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		E8ABCB80880E8496EE3E87AB /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
@@ -296,6 +328,16 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		88053D4FCFB4609AFBCAA0C9 /* DeskBoardWidget */ = {
+			isa = PBXGroup;
+			children = (
+				11A5B18A2F35BB65F59DECA8 /* DeskBoardControlCenterWidgets.swift */,
+				D62589EF7002C2A00734FF7F /* DeskBoardControlWidgetBundle.swift */,
+				E43BB638A9FE1E4B05B2A680 /* DeskBoardQuickActionsWidget.swift */,
+			);
+			path = DeskBoardWidget;
+			sourceTree = "<group>";
+		};
 		B185AA44A7568FEDF6023FA5 /* Pairing */ = {
 			isa = PBXGroup;
 			children = (
@@ -309,6 +351,7 @@
 			isa = PBXGroup;
 			children = (
 				FD504E4251A4EE2C00C78920 /* DeskBoard */,
+				88053D4FCFB4609AFBCAA0C9 /* DeskBoardWidget */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -350,6 +393,7 @@
 			isa = PBXGroup;
 			children = (
 				69B3F407D05332EF85FC3A82 /* DeskBoard.app */,
+				2DE8DB63B48ACDC9CFD7BEC9 /* DeskBoardControls.appex */,
 				7E7D9529EBB8D943C19A306B /* DeskBoardTests.xctest */,
 			);
 			name = Products;
@@ -387,6 +431,7 @@
 			children = (
 				9EDF287A9F85F2E505B0E5FB /* DiagnosticsView.swift */,
 				06507842F60C96922170EB84 /* ExecutionLogView.swift */,
+				6CBE0EE83023CE06DBE3B2E9 /* IntentControlsView.swift */,
 				AEE8DF0CBABB87977F0059F8 /* SettingsView.swift */,
 			);
 			path = Views;
@@ -460,10 +505,12 @@
 				240282305EEAA405F06FEFE4 /* Generate App Icons */,
 				4761B9ED00A30C1C469C0720 /* Sources */,
 				77722629E19EB6499662307C /* Frameworks */,
+				F5A34446CCC569B727A2BC48 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B8E3193BFB26143A5484853B /* PBXTargetDependency */,
 			);
 			name = DeskBoard;
 			packageProductDependencies = (
@@ -491,6 +538,23 @@
 			productReference = 7E7D9529EBB8D943C19A306B /* DeskBoardTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		FC41A67A39A771896EB98558 /* DeskBoardControls */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 775F44DA0629E13ED2E87115 /* Build configuration list for PBXNativeTarget "DeskBoardControls" */;
+			buildPhases = (
+				83D5547E5720F629D5BF3D22 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DeskBoardControls;
+			packageProductDependencies = (
+			);
+			productName = DeskBoardControls;
+			productReference = 2DE8DB63B48ACDC9CFD7BEC9 /* DeskBoardControls.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -501,6 +565,10 @@
 				LastUpgradeCheck = 1520;
 				TargetAttributes = {
 					75B3C42D566A7ED15CED5851 = {
+						DevelopmentTeam = "$(DEVELOPMENT_TEAM)";
+						ProvisioningStyle = Manual;
+					};
+					FC41A67A39A771896EB98558 = {
 						DevelopmentTeam = "$(DEVELOPMENT_TEAM)";
 						ProvisioningStyle = Manual;
 					};
@@ -524,6 +592,7 @@
 			projectRoot = "";
 			targets = (
 				75B3C42D566A7ED15CED5851 /* DeskBoard */,
+				FC41A67A39A771896EB98558 /* DeskBoardControls */,
 				E8537338728BF55DEAA60500 /* DeskBoardTests */,
 			);
 		};
@@ -586,6 +655,7 @@
 				2906853240DA27384452F534 /* HTTPActionService.swift in Sources */,
 				7DCCE1DF58706FC8B91472CA /* HapticManager.swift in Sources */,
 				D8C1DEC8932EB730D98A6A49 /* IncomingCommandView.swift in Sources */,
+				A3AE0E62CC6A2C1C4F1D01F0 /* IntentControlsView.swift in Sources */,
 				038893A8A49234934A58CDCB /* MediaControlService.swift in Sources */,
 				1D750A9F1382A2F632105CA1 /* NearbyDevicesView.swift in Sources */,
 				89438BF872947251193A2832 /* OnboardingView.swift in Sources */,
@@ -619,9 +689,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		83D5547E5720F629D5BF3D22 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				85BC506AB76E873BB83FC61E /* DeskBoardControlCenterWidgets.swift in Sources */,
+				1207FE1BB5AC2BF341B5593A /* DeskBoardControlWidgetBundle.swift in Sources */,
+				BD9917C46DF828B815B84E0C /* DeskBoardIntents.swift in Sources */,
+				A68A39451E3DDC6814DD3F2A /* DeskBoardQuickActionsWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		B8E3193BFB26143A5484853B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FC41A67A39A771896EB98558 /* DeskBoardControls */;
+			targetProxy = A63992EB5451F3FEADC875F6 /* PBXContainerItemProxy */;
+		};
 		C20D7EAA5AA4C728284D302B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 75B3C42D566A7ED15CED5851 /* DeskBoard */;
@@ -630,6 +716,26 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		0E13654F6B4AE1597D3144C8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
+				INFOPLIST_FILE = Resources/DeskBoardWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.deskboard.app.controls;
+				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER)";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		61A922904D2369D079DACBB8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -679,6 +785,26 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Osize";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		800AFFCAF8D6E74B6322B907 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
+				INFOPLIST_FILE = Resources/DeskBoardWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.deskboard.app.controls;
+				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER)";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -857,6 +983,15 @@
 			buildConfigurations = (
 				61A922904D2369D079DACBB8 /* Debug */,
 				75ECEEB9949B7287984B195A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		775F44DA0629E13ED2E87115 /* Build configuration list for PBXNativeTarget "DeskBoardControls" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0E13654F6B4AE1597D3144C8 /* Debug */,
+				800AFFCAF8D6E74B6322B907 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

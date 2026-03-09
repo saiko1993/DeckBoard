@@ -26,7 +26,6 @@ enum AppConfiguration {
         static let backgroundRelayURL = "com.deskboard.backgroundRelayURL"
         static let backgroundRelayAPIKey = "com.deskboard.backgroundRelayAPIKey"
         static let experimentalBackgroundKeepAliveEnabled = "com.deskboard.experimentalBackgroundKeepAliveEnabled"
-        static let pendingIntentAction = "com.deskboard.pendingIntentAction"
     }
 
     // MARK: - Defaults

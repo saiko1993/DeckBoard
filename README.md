@@ -10,6 +10,7 @@ DeskBoard is a native iOS/iPadOS shortcut dashboard that sends commands to a pai
 - APNs silent wake support via Cloudflare worker (`backend/push-gateway`)
 - macOS relay executor (`backend/mac-receiver`)
 - macOS agent scaffold (`backend/mac-agent`)
+- Widget + Control Center controls extension (`Sources/DeskBoardWidget`)
 
 ## Project structure
 
@@ -64,6 +65,7 @@ bundle exec fastlane build_debug
   - queue until receiver returns to foreground
   - fail immediately
 - Experimental audio keep-alive is off by default and must be explicitly enabled from Settings > Debug.
+- Intent-driven quick actions are available via App Intents, Home Screen widget, and Control Center controls (iOS 18+).
 
 ## Relay setup
 
