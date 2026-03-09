@@ -4,8 +4,14 @@ git_url ENV["MATCH_GIT_URL"]
 # Storage type: git, google_cloud, s3
 storage_mode "git"
 
-# App identifier
-app_identifier "com.deskboard.app"
+# App identifiers (app + extension)
+app_identifier([
+  ENV.fetch("APP_BUNDLE_IDENTIFIER", "app.rork.qk8s5pz3bbw4sk3nw0gmq"),
+  ENV.fetch(
+    "APP_CONTROLS_BUNDLE_IDENTIFIER",
+    "#{ENV.fetch("APP_BUNDLE_IDENTIFIER", "app.rork.qk8s5pz3bbw4sk3nw0gmq")}.controls"
+  )
+])
 
 # Apple ID
 username ENV["APPLE_ID"]

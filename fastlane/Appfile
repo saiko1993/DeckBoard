@@ -1,3 +1,3 @@
-app_identifier("com.deskboard.app")
+app_identifier(ENV["APP_BUNDLE_IDENTIFIER"] || "app.rork.qk8s5pz3bbw4sk3nw0gmq")
 apple_id(ENV["APPLE_ID"])
 team_id(ENV["TEAM_ID"])

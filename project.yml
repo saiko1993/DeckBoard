@@ -109,6 +109,24 @@ targets:
             sips -z 1024 1024 "$ICON" --out "$DEST/icon-1024.png" 2>/dev/null || true
           fi
         name: Generate App Icons
+        inputFiles:
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon.png
+        outputFiles:
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-20@2x.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-20@3x.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-29@2x.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-29@3x.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-40@2x.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-40@3x.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-60@2x.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-60@3x.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-20.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-29.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-40.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-76.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-76@2x.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-83.5@2x.png
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
     resources:
       - Resources/Assets.xcassets
       - Resources/Localizable.strings
@@ -178,7 +196,7 @@ targets:
         INFOPLIST_FILE: Resources/DeskBoardWidget/Info.plist
         CODE_SIGN_STYLE: Manual
         DEVELOPMENT_TEAM: $(DEVELOPMENT_TEAM)
-        PROVISIONING_PROFILE_SPECIFIER: $(PROVISIONING_PROFILE_SPECIFIER)
+        PROVISIONING_PROFILE_SPECIFIER: $(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)
         APPLICATION_EXTENSION_API_ONLY: YES
 
 schemes:

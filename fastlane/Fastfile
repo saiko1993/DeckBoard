@@ -16,7 +16,8 @@
 
 default_platform(:ios)
 
-APP_IDENTIFIER = "com.deskboard.app"
+APP_IDENTIFIER = ENV["APP_BUNDLE_IDENTIFIER"] || "app.rork.qk8s5pz3bbw4sk3nw0gmq"
+APP_CONTROLS_IDENTIFIER = ENV["APP_CONTROLS_BUNDLE_IDENTIFIER"] || "#{APP_IDENTIFIER}.controls"
 SCHEME         = "DeskBoard"
 WORKSPACE      = "DeskBoard.xcworkspace"
 PROJECT        = "DeskBoard.xcodeproj"
@@ -88,7 +89,7 @@ platform :ios do
   lane :sync_dev_certs do
     match(
       type: "development",
-      app_identifier: APP_IDENTIFIER,
+      app_identifier: [APP_IDENTIFIER, APP_CONTROLS_IDENTIFIER],
       readonly: is_ci
     )
   end
@@ -97,7 +98,7 @@ platform :ios do
   lane :sync_dist_certs do
     match(
       type: "appstore",
-      app_identifier: APP_IDENTIFIER,
+      app_identifier: [APP_IDENTIFIER, APP_CONTROLS_IDENTIFIER],
       readonly: is_ci
     )
   end
@@ -106,7 +107,7 @@ platform :ios do
   lane :sync_adhoc_certs do
     match(
       type: "adhoc",
-      app_identifier: APP_IDENTIFIER,
+      app_identifier: [APP_IDENTIFIER, APP_CONTROLS_IDENTIFIER],
       readonly: is_ci
     )
   end
@@ -131,7 +132,8 @@ platform :ios do
       include_bitcode: false,
       xcargs: [
         "DEVELOPMENT_TEAM=#{ENV['TEAM_ID']}",
-        "PROVISIONING_PROFILE_SPECIFIER=match Development #{APP_IDENTIFIER}"
+        "PROVISIONING_PROFILE_SPECIFIER=match Development #{APP_IDENTIFIER}",
+        "PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS=match Development #{APP_CONTROLS_IDENTIFIER}"
       ].join(" ")
     )
 
@@ -154,7 +156,8 @@ platform :ios do
       include_bitcode: false,
       xcargs: [
         "DEVELOPMENT_TEAM=#{ENV['TEAM_ID']}",
-        "PROVISIONING_PROFILE_SPECIFIER=match AdHoc #{APP_IDENTIFIER}"
+        "PROVISIONING_PROFILE_SPECIFIER=match AdHoc #{APP_IDENTIFIER}",
+        "PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS=match AdHoc #{APP_CONTROLS_IDENTIFIER}"
       ].join(" ")
     )
 
@@ -177,7 +180,8 @@ platform :ios do
       include_bitcode: false,
       xcargs: [
         "DEVELOPMENT_TEAM=#{ENV['TEAM_ID']}",
-        "PROVISIONING_PROFILE_SPECIFIER=match AppStore #{APP_IDENTIFIER}"
+        "PROVISIONING_PROFILE_SPECIFIER=match AppStore #{APP_IDENTIFIER}",
+        "PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS=match AppStore #{APP_CONTROLS_IDENTIFIER}"
       ].join(" ")
     )
 

@@ -49,6 +49,10 @@ bash scripts/setup.sh
 
 Then fill `.env` with your Apple developer credentials.
 
+For manual signing, provide separate provisioning profiles for:
+- `PROVISIONING_PROFILE_SPECIFIER` (main app bundle id)
+- `PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS` (widget/control extension bundle id)
+
 ## Build and test
 
 ```bash

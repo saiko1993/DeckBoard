@@ -607,11 +607,27 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon.png",
 			);
 			name = "Generate App Icons";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-20@2x.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-20@3x.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-29@2x.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-29@3x.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-40@2x.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-40@3x.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-60@2x.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-60@3x.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-20.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-29.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-40.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-76.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-76@2x.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-83.5@2x.png",
+				"$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -729,8 +745,8 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.DeskBoardControls;
-				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.controls;
+				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -801,8 +817,8 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.DeskBoardControls;
-				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.controls;
+				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -1019,7 +1035,7 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		7F38010FA77A196385A074B6 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = https://github.com/kishikawakatsumi/KeychainAccess;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 4.2.2;
