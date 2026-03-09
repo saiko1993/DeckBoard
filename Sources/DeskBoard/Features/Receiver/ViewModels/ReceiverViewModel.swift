@@ -54,7 +54,7 @@ final class ReceiverViewModel: ObservableObject {
     }
 
     func startListening() {
-        appState.reconnect()
+        appState.ensureConnectionActive()
     }
 
     func setAllowed(category: ButtonAction.ActionCategory, allowed: Bool) {

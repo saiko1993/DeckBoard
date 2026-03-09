@@ -41,6 +41,7 @@ final class SettingsViewModel: ObservableObject {
         let trimmed = deviceName.trimmed
         guard !trimmed.isEmpty else { return }
         appState.deviceName = trimmed
+        appState.reconnect()
     }
 
     func saveTheme(_ theme: AppTheme) {
@@ -60,7 +61,7 @@ final class SettingsViewModel: ObservableObject {
 
     func saveAutoReconnect(_ enabled: Bool) {
         autoReconnect = enabled
-        AppConfiguration.autoReconnect = enabled
+        appState.setAutoReconnect(enabled)
     }
 
     func changeRole(_ role: DeviceRole) {

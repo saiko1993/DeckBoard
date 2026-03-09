@@ -1,5 +1,5 @@
 import UIKit
-import BackgroundTasks
+@preconcurrency import BackgroundTasks
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
@@ -14,20 +14,17 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             application.isIdleTimerDisabled = true
         }
         registerBackgroundTask()
+        Self.scheduleBGRefresh()
         return true
     }
 
     private func registerBackgroundTask() {
-        do {
-            try BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.bgTaskID, using: .main) { task in
-                guard let bgTask = task as? BGAppRefreshTask else {
-                    task.setTaskCompleted(success: false)
-                    return
-                }
-                Self.performBGRefresh(bgTask)
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.bgTaskID, using: .main) { task in
+            guard let bgTask = task as? BGAppRefreshTask else {
+                task.setTaskCompleted(success: false)
+                return
             }
-        } catch {
-            print("BGTask registration failed: \(error)")
+            Self.performBGRefresh(bgTask)
         }
     }
 
@@ -38,14 +35,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     }
 
     nonisolated func applicationDidEnterBackground(_ application: UIApplication) {
-        DispatchQueue.main.async {
-            PeerSession.shared.enterBackground()
-        }
         Self.scheduleBGRefresh()
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
-        PeerSession.shared.enterForeground()
         UIApplication.shared.isIdleTimerDisabled = true
     }
 
@@ -59,13 +52,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         task.expirationHandler = {
             task.setTaskCompleted(success: false)
         }
-        DispatchQueue.main.async {
-            let session = PeerSession.shared
-            if !session.isConnected {
-                session.attemptQuickReconnect()
-            }
-            task.setTaskCompleted(success: true)
+        let session = PeerSession.shared
+        if AppConfiguration.autoReconnect && !session.isConnected {
+            session.attemptQuickReconnect()
         }
+        task.setTaskCompleted(success: true)
         scheduleBGRefresh()
     }
 }

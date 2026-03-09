@@ -52,7 +52,7 @@ final class PairingViewModel: ObservableObject {
     // MARK: - Discovery
 
     func startDiscovery() {
-        appState.reconnect()
+        appState.ensureConnectionActive()
     }
 
     func stopDiscovery() {

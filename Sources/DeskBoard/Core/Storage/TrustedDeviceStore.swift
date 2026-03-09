@@ -64,9 +64,32 @@ final class TrustedDeviceStore: @unchecked Sendable {
         loadAll().contains { $0.id == id && $0.isTrusted }
     }
 
+    func isTrusted(primaryID: String?, fallbackID: String?) -> Bool {
+        let devices = loadAll()
+        return devices.contains { device in
+            guard device.isTrusted else { return false }
+            if let primaryID, device.id == primaryID { return true }
+            if let fallbackID, device.id == fallbackID { return true }
+            return false
+        }
+    }
+
     func updateLastSeen(id: String) {
         var devices = loadAll()
         if let idx = devices.firstIndex(where: { $0.id == id }) {
+            devices[idx].lastSeenAt = Date()
+            save(devices)
+        }
+    }
+
+    func updateLastSeen(primaryID: String?, fallbackID: String?) {
+        var devices = loadAll()
+        if let primaryID, let idx = devices.firstIndex(where: { $0.id == primaryID }) {
+            devices[idx].lastSeenAt = Date()
+            save(devices)
+            return
+        }
+        if let fallbackID, let idx = devices.firstIndex(where: { $0.id == fallbackID }) {
             devices[idx].lastSeenAt = Date()
             save(devices)
         }
@@ -80,6 +103,20 @@ final class TrustedDeviceStore: @unchecked Sendable {
         guard let storedToken = device.pairingToken else {
             return true
         }
+        return storedToken == token
+    }
+
+    func validateToken(primaryID: String?, fallbackID: String?, token: String) -> Bool {
+        let devices = loadAll()
+        let device = devices.first { current in
+            guard current.isTrusted else { return false }
+            if let primaryID, current.id == primaryID { return true }
+            if let fallbackID, current.id == fallbackID { return true }
+            return false
+        }
+
+        guard let device else { return true }
+        guard let storedToken = device.pairingToken else { return true }
         return storedToken == token
     }
 

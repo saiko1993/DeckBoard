@@ -37,6 +37,8 @@ final class AppState: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var hasConfigured = false
     private var hasBootstrapped = false
+    private var configuredRole: DeviceRole = .unset
+    private var configuredDeviceName: String = ""
 
     init(
         peerSession: PeerSession = .shared,
@@ -53,6 +55,7 @@ final class AppState: ObservableObject {
         hasBootstrapped = true
         loadInitialData()
         bindPeerSession()
+        peerSession.setAutoReconnectEnabled(AppConfiguration.autoReconnect)
     }
 
     private func loadInitialData() {
@@ -86,17 +89,22 @@ final class AppState: ObservableObject {
 
     func ensureConnectionActive() {
         guard deviceRole != .unset, isOnboardingDone else { return }
-        if !hasConfigured {
-            configurePeerSession()
-        } else if !connectionState.isConnected {
-            reconnect()
+        peerSession.setAutoReconnectEnabled(AppConfiguration.autoReconnect)
+
+        if needsSessionRebuild {
+            configurePeerSession(forceRebuild: true)
+            return
+        }
+
+        if !connectionState.isConnected {
+            peerSession.restartServices()
         }
     }
 
     func handleBecameActive() {
         guard deviceRole != .unset, isOnboardingDone else { return }
         UIApplication.shared.isIdleTimerDisabled = true
-        peerSession.enableAutoReconnect()
+        peerSession.setAutoReconnectEnabled(AppConfiguration.autoReconnect)
         peerSession.enterForeground()
     }
 
@@ -110,12 +118,22 @@ final class AppState: ObservableObject {
         AppConfiguration.deviceRole = role
         isOnboardingDone = true
         AppConfiguration.isOnboardingDone = true
-        configurePeerSession()
+        configurePeerSession(forceRebuild: true)
     }
 
-    private func configurePeerSession() {
-        hasConfigured = true
-        peerSession.configure(deviceName: deviceName, role: deviceRole)
+    private var needsSessionRebuild: Bool {
+        !hasConfigured || configuredRole != deviceRole || configuredDeviceName != deviceName
+    }
+
+    private func configurePeerSession(forceRebuild: Bool = false) {
+        let shouldRebuild = forceRebuild || needsSessionRebuild
+        peerSession.setAutoReconnectEnabled(AppConfiguration.autoReconnect)
+        if shouldRebuild {
+            hasConfigured = true
+            configuredRole = deviceRole
+            configuredDeviceName = deviceName
+            peerSession.configure(deviceName: deviceName, role: deviceRole)
+        }
         peerSession.startAllServices()
     }
 
@@ -222,11 +240,12 @@ final class AppState: ObservableObject {
     func acceptPairing() {
         guard let request = incomingPairingRequest else { return }
         peerSession.acceptPairing()
+        let trustedID = request.deviceUUID ?? request.peerID.displayName
         let device = PairedDevice(
-            id: request.peerID.displayName,
+            id: trustedID,
             displayName: request.deviceName,
             role: DeviceRole(rawValue: request.deviceRole) ?? .sender,
-            pairingToken: PeerSession.pairingToken
+            pairingToken: request.pairingToken
         )
         trustedDeviceStore.add(device)
         trustedDevices = trustedDeviceStore.loadAll()
@@ -242,8 +261,20 @@ final class AppState: ObservableObject {
     }
 
     func reconnect() {
-        peerSession.enableAutoReconnect()
-        configurePeerSession()
+        peerSession.setAutoReconnectEnabled(AppConfiguration.autoReconnect)
+        if needsSessionRebuild {
+            configurePeerSession(forceRebuild: true)
+            return
+        }
+        peerSession.restartServices()
+    }
+
+    func setAutoReconnect(_ enabled: Bool) {
+        AppConfiguration.autoReconnect = enabled
+        peerSession.setAutoReconnectEnabled(enabled)
+        if enabled {
+            ensureConnectionActive()
+        }
     }
 
     func disconnect() {

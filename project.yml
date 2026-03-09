@@ -73,6 +73,10 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIBackgroundModes:
           - fetch
+          - processing
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.deskboard.connection-keepalive
+        NSAppleMusicUsageDescription: "DeskBoard needs media library access to control music playback on this device."
         ITSAppUsesNonExemptEncryption: false
     preBuildScripts:
       - script: |
