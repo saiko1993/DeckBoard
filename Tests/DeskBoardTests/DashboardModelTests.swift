@@ -1,4 +1,5 @@
 import XCTest
+import SwiftUI
 @testable import DeskBoard
 
 final class DashboardModelTests: XCTestCase {
@@ -15,7 +16,7 @@ final class DashboardModelTests: XCTestCase {
     }
 
     func testDashboardColorParsing() {
-        let dashboard = Dashboard(name: "Blue", colorHex: "#007AFF")
+        _ = Dashboard(name: "Blue", colorHex: "#007AFF")
         // Color should be non-nil
         let color = Color(hex: "#007AFF")
         XCTAssertNotNil(color)

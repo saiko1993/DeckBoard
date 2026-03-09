@@ -285,6 +285,18 @@ struct ButtonEditorView: View {
     @ViewBuilder
     private var advancedSection: some View {
         Section("Advanced") {
+            Picker("Target Policy", selection: $viewModel.targetPolicy) {
+                ForEach(ActionTargetPolicy.allCases, id: \.self) { policy in
+                    Text(policy.title).tag(policy)
+                }
+            }
+
+            Picker("Background Fallback", selection: $viewModel.backgroundFallback) {
+                ForEach(BackgroundFallbackPolicy.allCases, id: \.self) { policy in
+                    Text(policy.title).tag(policy)
+                }
+            }
+
             HStack {
                 Text("Corner Radius")
                 Spacer()
@@ -311,6 +323,24 @@ struct ButtonEditorView: View {
                     .frame(width: 40)
             }
             Slider(value: $viewModel.cooldownSeconds, in: 0...10, step: 0.5)
+
+            HStack {
+                Text("Retry Count")
+                Spacer()
+                Text("\(Int(viewModel.retryCount.rounded()))")
+                    .foregroundStyle(.secondary)
+                    .frame(width: 30)
+            }
+            Slider(value: $viewModel.retryCount, in: 0...3, step: 1)
+
+            HStack {
+                Text("Timeout")
+                Spacer()
+                Text("\(Int(viewModel.timeoutSeconds.rounded()))s")
+                    .foregroundStyle(.secondary)
+                    .frame(width: 40)
+            }
+            Slider(value: $viewModel.timeoutSeconds, in: 5...30, step: 1)
 
             Toggle("Confirm Before Execute", isOn: $viewModel.confirmBeforeExecute)
         }

@@ -8,13 +8,164 @@ nonisolated struct CommandMessage: Codable, Identifiable, Sendable {
     let payload: CommandPayload
     let senderID: String
     let timestamp: Date
+    let protocolVersion: Int
+    let originDeviceUUID: String?
+    let traceID: String
+    let deliveryPolicy: CommandDeliveryPolicy
+    let ttlSeconds: Int?
+    let targetPolicy: ActionTargetPolicy?
+    let backgroundFallback: BackgroundFallbackPolicy?
+    let attempt: Int
+    let maxAttempts: Int
 
-    init(type: CommandType, payload: CommandPayload, senderID: String) {
+    init(
+        type: CommandType,
+        payload: CommandPayload,
+        senderID: String,
+        protocolVersion: Int = 2,
+        originDeviceUUID: String? = nil,
+        traceID: String = UUID().uuidString,
+        deliveryPolicy: CommandDeliveryPolicy = .atLeastOnce,
+        ttlSeconds: Int? = nil,
+        targetPolicy: ActionTargetPolicy? = nil,
+        backgroundFallback: BackgroundFallbackPolicy? = nil,
+        attempt: Int = 1,
+        maxAttempts: Int = 1
+    ) {
         self.id = UUID()
         self.type = type
         self.payload = payload
         self.senderID = senderID
         self.timestamp = Date()
+        self.protocolVersion = max(1, protocolVersion)
+        self.originDeviceUUID = originDeviceUUID
+        self.traceID = traceID
+        self.deliveryPolicy = deliveryPolicy
+        self.ttlSeconds = ttlSeconds
+        self.targetPolicy = targetPolicy
+        self.backgroundFallback = backgroundFallback
+        self.attempt = max(1, attempt)
+        self.maxAttempts = max(1, maxAttempts)
+    }
+
+    private init(
+        id: UUID,
+        type: CommandType,
+        payload: CommandPayload,
+        senderID: String,
+        timestamp: Date,
+        protocolVersion: Int,
+        originDeviceUUID: String?,
+        traceID: String,
+        deliveryPolicy: CommandDeliveryPolicy,
+        ttlSeconds: Int?,
+        targetPolicy: ActionTargetPolicy?,
+        backgroundFallback: BackgroundFallbackPolicy?,
+        attempt: Int,
+        maxAttempts: Int
+    ) {
+        self.id = id
+        self.type = type
+        self.payload = payload
+        self.senderID = senderID
+        self.timestamp = timestamp
+        self.protocolVersion = protocolVersion
+        self.originDeviceUUID = originDeviceUUID
+        self.traceID = traceID
+        self.deliveryPolicy = deliveryPolicy
+        self.ttlSeconds = ttlSeconds
+        self.targetPolicy = targetPolicy
+        self.backgroundFallback = backgroundFallback
+        self.attempt = attempt
+        self.maxAttempts = maxAttempts
+    }
+
+    func withAttempt(_ value: Int) -> CommandMessage {
+        CommandMessage(
+            id: id,
+            type: type,
+            payload: payload,
+            senderID: senderID,
+            timestamp: timestamp,
+            protocolVersion: protocolVersion,
+            originDeviceUUID: originDeviceUUID,
+            traceID: traceID,
+            deliveryPolicy: deliveryPolicy,
+            ttlSeconds: ttlSeconds,
+            targetPolicy: targetPolicy,
+            backgroundFallback: backgroundFallback,
+            attempt: max(1, value),
+            maxAttempts: maxAttempts
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case type
+        case payload
+        case senderID
+        case timestamp
+        case protocolVersion
+        case originDeviceUUID
+        case traceID
+        case deliveryPolicy
+        case ttlSeconds
+        case targetPolicy
+        case backgroundFallback
+        case attempt
+        case maxAttempts
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let id = try container.decode(UUID.self, forKey: .id)
+        let type = try container.decode(CommandType.self, forKey: .type)
+        let payload = try container.decode(CommandPayload.self, forKey: .payload)
+        let senderID = try container.decode(String.self, forKey: .senderID)
+        let timestamp = try container.decode(Date.self, forKey: .timestamp)
+        let protocolVersion = max(1, try container.decodeIfPresent(Int.self, forKey: .protocolVersion) ?? 1)
+        let originDeviceUUID = try container.decodeIfPresent(String.self, forKey: .originDeviceUUID)
+        let traceID = try container.decodeIfPresent(String.self, forKey: .traceID) ?? id.uuidString
+        let deliveryPolicy = try container.decodeIfPresent(CommandDeliveryPolicy.self, forKey: .deliveryPolicy) ?? .atLeastOnce
+        let ttlSeconds = try container.decodeIfPresent(Int.self, forKey: .ttlSeconds)
+        let targetPolicy = try container.decodeIfPresent(ActionTargetPolicy.self, forKey: .targetPolicy)
+        let backgroundFallback = try container.decodeIfPresent(BackgroundFallbackPolicy.self, forKey: .backgroundFallback)
+        let attempt = max(1, try container.decodeIfPresent(Int.self, forKey: .attempt) ?? 1)
+        let maxAttempts = max(1, try container.decodeIfPresent(Int.self, forKey: .maxAttempts) ?? attempt)
+        self.init(
+            id: id,
+            type: type,
+            payload: payload,
+            senderID: senderID,
+            timestamp: timestamp,
+            protocolVersion: protocolVersion,
+            originDeviceUUID: originDeviceUUID,
+            traceID: traceID,
+            deliveryPolicy: deliveryPolicy,
+            ttlSeconds: ttlSeconds,
+            targetPolicy: targetPolicy,
+            backgroundFallback: backgroundFallback,
+            attempt: attempt,
+            maxAttempts: maxAttempts
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(type, forKey: .type)
+        try container.encode(payload, forKey: .payload)
+        try container.encode(senderID, forKey: .senderID)
+        try container.encode(timestamp, forKey: .timestamp)
+        try container.encode(protocolVersion, forKey: .protocolVersion)
+        try container.encodeIfPresent(originDeviceUUID, forKey: .originDeviceUUID)
+        try container.encode(traceID, forKey: .traceID)
+        try container.encode(deliveryPolicy, forKey: .deliveryPolicy)
+        try container.encodeIfPresent(ttlSeconds, forKey: .ttlSeconds)
+        try container.encodeIfPresent(targetPolicy, forKey: .targetPolicy)
+        try container.encodeIfPresent(backgroundFallback, forKey: .backgroundFallback)
+        try container.encode(attempt, forKey: .attempt)
+        try container.encode(maxAttempts, forKey: .maxAttempts)
     }
 }
 
@@ -138,6 +289,10 @@ nonisolated struct ActionExecutionReport: Codable, Hashable, Sendable {
     let target: String?
     let queuePosition: Int?
     let processedAt: Date
+    let executor: CommandExecutor
+    let errorCode: String?
+    let attempt: Int
+    let latencyMs: Int?
 
     init(
         commandID: UUID,
@@ -145,7 +300,11 @@ nonisolated struct ActionExecutionReport: Codable, Hashable, Sendable {
         detail: String? = nil,
         target: String? = nil,
         queuePosition: Int? = nil,
-        processedAt: Date = Date()
+        processedAt: Date = Date(),
+        executor: CommandExecutor = .iosReceiver,
+        errorCode: String? = nil,
+        attempt: Int = 1,
+        latencyMs: Int? = nil
     ) {
         self.commandID = commandID
         self.status = status
@@ -153,6 +312,37 @@ nonisolated struct ActionExecutionReport: Codable, Hashable, Sendable {
         self.target = target
         self.queuePosition = queuePosition
         self.processedAt = processedAt
+        self.executor = executor
+        self.errorCode = errorCode
+        self.attempt = max(1, attempt)
+        self.latencyMs = latencyMs
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case commandID
+        case status
+        case detail
+        case target
+        case queuePosition
+        case processedAt
+        case executor
+        case errorCode
+        case attempt
+        case latencyMs
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        commandID = try container.decode(UUID.self, forKey: .commandID)
+        status = try container.decode(RemoteActionStatus.self, forKey: .status)
+        detail = try container.decodeIfPresent(String.self, forKey: .detail)
+        target = try container.decodeIfPresent(String.self, forKey: .target)
+        queuePosition = try container.decodeIfPresent(Int.self, forKey: .queuePosition)
+        processedAt = try container.decodeIfPresent(Date.self, forKey: .processedAt) ?? Date()
+        executor = try container.decodeIfPresent(CommandExecutor.self, forKey: .executor) ?? .iosReceiver
+        errorCode = try container.decodeIfPresent(String.self, forKey: .errorCode)
+        attempt = max(1, try container.decodeIfPresent(Int.self, forKey: .attempt) ?? 1)
+        latencyMs = try container.decodeIfPresent(Int.self, forKey: .latencyMs)
     }
 }
 

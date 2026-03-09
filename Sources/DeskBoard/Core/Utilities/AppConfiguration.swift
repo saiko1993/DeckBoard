@@ -25,6 +25,8 @@ enum AppConfiguration {
         static let backgroundRelayEnabled = "com.deskboard.backgroundRelayEnabled"
         static let backgroundRelayURL = "com.deskboard.backgroundRelayURL"
         static let backgroundRelayAPIKey = "com.deskboard.backgroundRelayAPIKey"
+        static let experimentalBackgroundKeepAliveEnabled = "com.deskboard.experimentalBackgroundKeepAliveEnabled"
+        static let pendingIntentAction = "com.deskboard.pendingIntentAction"
     }
 
     // MARK: - Defaults
@@ -113,6 +115,11 @@ enum AppConfiguration {
         let trimmed = backgroundRelayURL.trimmed
         guard !trimmed.isEmpty else { return nil }
         return URL(string: trimmed)
+    }
+
+    static var experimentalBackgroundKeepAliveEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: Keys.experimentalBackgroundKeepAliveEnabled) as? Bool ?? false }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.experimentalBackgroundKeepAliveEnabled) }
     }
 }
 

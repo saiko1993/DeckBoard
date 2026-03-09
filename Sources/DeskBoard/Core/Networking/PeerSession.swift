@@ -456,7 +456,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         pruneExpiredPendingInvites()
         stopReconnectTimer()
 
-        let delay = currentReconnectInterval
+        let jitter = Double.random(in: 0.85...1.20)
+        let delay = currentReconnectInterval * jitter
         isReconnecting = true
 
         let timer = DispatchSource.makeTimerSource(queue: timerQueue)
@@ -676,7 +677,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     func enterBackground() {
         isInForeground = false
         isEnteringForeground = false
-        let shouldKeepAlive = autoReconnectEnabled && currentRole == .receiver
+        let shouldKeepAlive =
+            autoReconnectEnabled &&
+            currentRole == .receiver &&
+            AppConfiguration.experimentalBackgroundKeepAliveEnabled
         backgroundNetworkingEnabled = BackgroundKeepAliveService.shared.setActive(shouldKeepAlive)
         if isConnected {
             let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: currentDeviceName)

@@ -165,4 +165,27 @@ final class ButtonActionTests: XCTestCase {
         XCTAssertTrue(ConnectionState.searching.isSearching)
         XCTAssertFalse(ConnectionState.idle.isSearching)
     }
+
+    func testButtonConfigDefaults() {
+        let config = ButtonConfig()
+        XCTAssertEqual(config.targetPolicy, .preferReceiver)
+        XCTAssertEqual(config.backgroundFallback, .relay)
+        XCTAssertEqual(config.retryCount, 1)
+        XCTAssertEqual(config.timeoutSeconds, 12)
+    }
+
+    func testButtonConfigLegacyDecodeCompatibility() throws {
+        let legacy: [String: Any] = [
+            "confirmBeforeExecute": true,
+            "cooldownSeconds": 1.5
+        ]
+        let data = try JSONSerialization.data(withJSONObject: legacy)
+        let decoded = try JSONDecoder().decode(ButtonConfig.self, from: data)
+        XCTAssertTrue(decoded.confirmBeforeExecute)
+        XCTAssertEqual(decoded.cooldownSeconds, 1.5, accuracy: 0.01)
+        XCTAssertEqual(decoded.targetPolicy, .preferReceiver)
+        XCTAssertEqual(decoded.backgroundFallback, .relay)
+        XCTAssertEqual(decoded.retryCount, 1)
+        XCTAssertEqual(decoded.timeoutSeconds, 12)
+    }
 }

@@ -7,6 +7,7 @@ struct DiagnosticsView: View {
     @State private var isTesting = false
     @State private var isCheckingRelayCapabilities = false
     @State private var relayCapabilitiesResult: String?
+    @State private var relayCapabilities: [String] = []
 
     var body: some View {
         List {
@@ -93,6 +94,22 @@ struct DiagnosticsView: View {
                         .font(.caption)
                         .foregroundStyle(relayCapabilitiesResult.contains("✓") ? .green : .secondary)
                 }
+
+                if !relayCapabilities.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(relayCapabilities, id: \.self) { capability in
+                                Text(capability)
+                                    .font(.caption2.monospaced())
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 5)
+                                    .background(Color(.secondarySystemGroupedBackground))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
             }
 
             if appState.deviceRole == .sender {
@@ -152,6 +169,7 @@ struct DiagnosticsView: View {
 
         isCheckingRelayCapabilities = true
         relayCapabilitiesResult = nil
+        relayCapabilities = []
 
         Task {
             defer { isCheckingRelayCapabilities = false }
@@ -175,6 +193,7 @@ struct DiagnosticsView: View {
 
                 let payload = try JSONDecoder().decode(RelayCapabilitiesResponse.self, from: data)
                 relayCapabilitiesResult = "✓ Relay online, \(payload.capabilities.count) capabilities"
+                relayCapabilities = payload.capabilities.sorted()
             } catch {
                 relayCapabilitiesResult = "Relay check failed: \(error.localizedDescription)"
             }
@@ -185,6 +204,8 @@ struct DiagnosticsView: View {
 private struct RelayCapabilitiesResponse: Codable {
     let ok: Bool
     let service: String?
+    let protocolVersion: Int?
+    let serviceVersion: String?
     let capabilities: [String]
 }
 

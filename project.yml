@@ -75,9 +75,6 @@ targets:
           - fetch
           - processing
           - remote-notification
-          - audio
-          - bluetooth-central
-          - bluetooth-peripheral
         BGTaskSchedulerPermittedIdentifiers:
           - com.deskboard.connection-keepalive
         NSAppleMusicUsageDescription: "DeskBoard needs media library access to control music playback on this device."
@@ -148,6 +145,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.deskboard.tests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/DeskBoard.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DeskBoard
         BUNDLE_LOADER: $(TEST_HOST)
 

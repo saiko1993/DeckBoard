@@ -154,4 +154,54 @@ final class CommandMessageTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(message.timestamp, before)
         XCTAssertLessThanOrEqual(message.timestamp, after)
     }
+
+    func testLegacyV1MessageDecodesWithDefaults() throws {
+        let message = CommandMessage(
+            type: .action,
+            payload: .buttonAction(.mediaPlay),
+            senderID: "legacy-device"
+        )
+        let data = try encoder.encode(message)
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        json.removeValue(forKey: "protocolVersion")
+        json.removeValue(forKey: "originDeviceUUID")
+        json.removeValue(forKey: "traceID")
+        json.removeValue(forKey: "deliveryPolicy")
+        json.removeValue(forKey: "ttlSeconds")
+        json.removeValue(forKey: "targetPolicy")
+        json.removeValue(forKey: "backgroundFallback")
+        json.removeValue(forKey: "attempt")
+        json.removeValue(forKey: "maxAttempts")
+
+        let legacyData = try JSONSerialization.data(withJSONObject: json)
+        let decoded = try encoder.decode(legacyData)
+
+        XCTAssertEqual(decoded.protocolVersion, 1)
+        XCTAssertEqual(decoded.deliveryPolicy, .atLeastOnce)
+        XCTAssertEqual(decoded.attempt, 1)
+        XCTAssertEqual(decoded.maxAttempts, 1)
+        XCTAssertEqual(decoded.traceID, decoded.id.uuidString)
+    }
+
+    func testActionReportLegacyDecodesWithDefaults() throws {
+        let report = ActionExecutionReport(
+            commandID: UUID(),
+            status: .success,
+            detail: "Done"
+        )
+        let data = try JSONEncoder().encode(report)
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        json.removeValue(forKey: "executor")
+        json.removeValue(forKey: "errorCode")
+        json.removeValue(forKey: "attempt")
+        json.removeValue(forKey: "latencyMs")
+
+        let legacyData = try JSONSerialization.data(withJSONObject: json)
+        let decoded = try JSONDecoder().decode(ActionExecutionReport.self, from: legacyData)
+
+        XCTAssertEqual(decoded.executor, .iosReceiver)
+        XCTAssertEqual(decoded.attempt, 1)
+        XCTAssertNil(decoded.errorCode)
+    }
 }

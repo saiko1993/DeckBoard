@@ -1,54 +1,42 @@
 # DeskBoard macOS Receiver Relay
 
-This relay lets your **iPad/iPhone receiver** forward commands that iOS cannot execute in background to a **MacBook on the same LAN**.
+Relay service that executes background-blocked DeskBoard actions on macOS.
 
-## What this solves
+## Highlights (Protocol v2)
 
-When the iOS receiver is in background, commands like `open app`, `open URL`, and `run shortcut` often require foreground.
+- Idempotent execution via `idempotencyKey` / `x-idempotency-key`
+- Structured execution responses with `executor`, `latencyMs`, `errorCode`
+- Capability metadata endpoint
+- Readiness metrics in health endpoint
 
-With relay enabled:
-
-- iOS keeps the connection alive.
-- Foreground-required commands are POSTed to this macOS relay.
-- The Mac executes supported actions using `open`, `shortcuts`, and `osascript`.
-
-## Quick start
+## Run
 
 ```bash
 cd backend/mac-receiver
 PORT=7788 DESKBOARD_API_KEY=your_key npm start
 ```
 
-Health check:
-
-```bash
-curl http://127.0.0.1:7788/health
-```
-
-## iOS app settings
-
-In DeskBoard receiver app:
-
-1. Open **Settings**.
-2. Go to **Mac Receiver Relay**.
-3. Enable **Forward blocked background actions**.
-4. Set URL (example): `http://192.168.1.20:7788`.
-5. Set API key if configured.
-
 ## Endpoints
 
 - `GET /health`
+  - Includes `serviceVersion`, `protocolVersion`, readiness and uptime
 - `GET /v1/capabilities`
+  - Includes capability list and metadata
 - `POST /v1/execute`
+  - Executes action payload with optional idempotency and trace values
 
-Request body format:
+## Execute payload
 
 ```json
 {
   "sourceDeviceUUID": "...",
-  "sourceDeviceName": "iPad Receiver",
+  "sourceDeviceName": "Ahmed iPad",
   "appVersion": "1.0.0",
   "reason": "receiver_background_foreground_required",
+  "traceID": "2A2F...",
+  "idempotencyKey": "2A2F...:1",
+  "attempt": 1,
+  "ttlSeconds": 12,
   "action": {
     "kind": "open_app",
     "appID": "chrome"
@@ -56,23 +44,11 @@ Request body format:
 }
 ```
 
-## Supported action kinds
+## macOS permissions
 
-- `open_url`, `open_deep_link`
-- `open_app`
-- `run_shortcut`, `run_script`
-- `keyboard_shortcut`
-- `toggle_dark_mode`, `screenshot`, `screen_record`, `sleep_display`, `lock_screen`
-- `open_terminal`, `force_quit_app`, `empty_trash`, `toggle_dnd`
-- `presentation_next`, `presentation_previous`, `presentation_start`, `presentation_end`
-- `media_play`, `media_pause`, `media_play_pause`, `media_next`, `media_previous`, `media_volume_up`, `media_volume_down`, `media_mute`
-- `macro`
+Some commands require macOS prompts to be approved once:
 
-## macOS permissions (required)
+- Accessibility (keyboard/system events)
+- Automation (Terminal/Node controlling System Events)
 
-For keyboard shortcuts and some scripts, macOS may ask for:
-
-- Accessibility permission (System Settings -> Privacy & Security -> Accessibility)
-- Automation permission (Terminal/Node controlling System Events)
-
-Grant them once on the Mac running the relay.
+Without these permissions, related commands will return execution errors.

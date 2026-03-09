@@ -212,6 +212,13 @@ private struct _SettingsViewBody: View {
                 }
 
                 Section("Debug") {
+                    Toggle(isOn: Binding(
+                        get: { viewModel.experimentalBackgroundKeepAliveEnabled },
+                        set: { viewModel.saveExperimentalBackgroundKeepAlive($0) }
+                    )) {
+                        Label("Experimental Background Keep-Alive", systemImage: "waveform")
+                    }
+
                     NavigationLink {
                         ExecutionLogView()
                     } label: {

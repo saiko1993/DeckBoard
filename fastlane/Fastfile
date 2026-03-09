@@ -69,7 +69,7 @@ platform :ios do
     run_tests(
       project: PROJECT,
       scheme: SCHEME,
-      devices: ["iPhone 15 Pro"],
+      devices: [ENV["TEST_DEVICE"] || "iPhone 16 Pro"],
       clean: true,
       code_coverage: true,
       output_directory: "fastlane/test_output",

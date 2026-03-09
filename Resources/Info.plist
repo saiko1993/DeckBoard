@@ -2,29 +2,41 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.deskboard.connection-keepalive</string>
+	</array>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>DeckBoard</string>
-	<key>CFBundleVersion</key>
-	<string>16</string>
-	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
+	<string>DeskBoard</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
-	<key>UILaunchScreen</key>
-	<dict>
-		<key>UIColorName</key>
-		<string></string>
-	</dict>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>16</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>DeskBoard needs media library access to control music playback on this device.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_deskboard-v1._tcp</string>
+		<string>_deskboard-v1._udp</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>DeskBoard needs camera access to scan QR codes for device pairing.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>DeskBoard uses your local network to discover and communicate with nearby devices.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -32,15 +44,17 @@
 		<key>UISceneConfigurations</key>
 		<dict/>
 	</dict>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>DeskBoard uses your local network to discover and communicate with nearby devices.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>DeskBoard needs camera access to scan QR codes for device pairing.</string>
-	<key>NSBonjourServices</key>
+	<key>UIBackgroundModes</key>
 	<array>
-		<string>_deskboard-v1._tcp</string>
-		<string>_deskboard-v1._udp</string>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>remote-notification</string>
 	</array>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string></string>
+	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -54,22 +68,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>processing</string>
-		<string>remote-notification</string>
-		<string>audio</string>
-		<string>bluetooth-central</string>
-		<string>bluetooth-peripheral</string>
-	</array>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>com.deskboard.connection-keepalive</string>
-	</array>
-	<key>NSAppleMusicUsageDescription</key>
-	<string>DeskBoard needs media library access to control music playback on this device.</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 </dict>
 </plist>

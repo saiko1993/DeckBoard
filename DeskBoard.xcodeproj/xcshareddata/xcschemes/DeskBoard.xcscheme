@@ -3,8 +3,9 @@
    LastUpgradeVersion = "1520"
    version = "1.7">
    <BuildAction
-      parallelizeBuildables = "1"
-      buildImplicitDependencies = "1">
+      parallelizeBuildables = "YES"
+      buildImplicitDependencies = "YES"
+      runPostActionsOnFailure = "NO">
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
@@ -14,7 +15,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "FA176E7EAD6ED6AA8759817D"
+               BlueprintIdentifier = "75B3C42D566A7ED15CED5851"
                BuildableName = "DeskBoard.app"
                BlueprintName = "DeskBoard"
                ReferencedContainer = "container:DeskBoard.xcodeproj">
@@ -28,9 +29,9 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BD584B0226D4B8C6C6C46071"
-               BuildableName = "DeckBoard.xctest"
-               BlueprintName = "DeskBoard"
+               BlueprintIdentifier = "E8537338728BF55DEAA60500"
+               BuildableName = "DeskBoardTests.xctest"
+               BlueprintName = "DeskBoardTests"
                ReferencedContainer = "container:DeskBoard.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -40,24 +41,36 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES">
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      onlyGenerateCoverageForSpecifiedTargets = "YES">
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "75B3C42D566A7ED15CED5851"
+            BuildableName = "DeskBoard.app"
+            BlueprintName = "DeskBoard"
+            ReferencedContainer = "container:DeskBoard.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
       <Testables>
          <TestableReference
             skipped = "NO"
-            parallelizable = "YES">
+            parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BD584B0226D4B8C6C6C46071"
-               BuildableName = "DeckBoard.xctest"
-               BlueprintName = "DeskBoard"
+               BlueprintIdentifier = "E8537338728BF55DEAA60500"
+               BuildableName = "DeskBoardTests.xctest"
+               BlueprintName = "DeskBoardTests"
                ReferencedContainer = "container:DeskBoard.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
+      <CommandLineArguments>
+      </CommandLineArguments>
       <CodeCoverageTargets>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FA176E7EAD6ED6AA8759817D"
+            BlueprintIdentifier = "75B3C42D566A7ED15CED5851"
             BuildableName = "DeskBoard.app"
             BlueprintName = "DeskBoard"
             ReferencedContainer = "container:DeskBoard.xcodeproj">
@@ -78,12 +91,21 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FA176E7EAD6ED6AA8759817D"
+            BlueprintIdentifier = "75B3C42D566A7ED15CED5851"
             BuildableName = "DeskBoard.app"
             BlueprintName = "DeskBoard"
             ReferencedContainer = "container:DeskBoard.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+      </CommandLineArguments>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "IS_TESTING"
+            value = "NO"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -95,19 +117,21 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FA176E7EAD6ED6AA8759817D"
+            BlueprintIdentifier = "75B3C42D566A7ED15CED5851"
             BuildableName = "DeskBoard.app"
             BlueprintName = "DeskBoard"
             ReferencedContainer = "container:DeskBoard.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+      </CommandLineArguments>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">
    </AnalyzeAction>
    <ArchiveAction
       buildConfiguration = "Release"
-      revealArchiveInOrganizer = "YES"
-      customArchiveName = "DeckBoard">
+      customArchiveName = "DeskBoard"
+      revealArchiveInOrganizer = "YES">
    </ArchiveAction>
 </Scheme>

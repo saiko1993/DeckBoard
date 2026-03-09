@@ -17,6 +17,7 @@ final class SettingsViewModel: ObservableObject {
     @Published var backgroundRelayEnabled: Bool = AppConfiguration.backgroundRelayEnabled
     @Published var backgroundRelayURL: String = AppConfiguration.backgroundRelayURL
     @Published var backgroundRelayAPIKey: String = AppConfiguration.backgroundRelayAPIKey ?? ""
+    @Published var experimentalBackgroundKeepAliveEnabled: Bool = AppConfiguration.experimentalBackgroundKeepAliveEnabled
     @Published var trustedDevices: [PairedDevice] = []
     @Published var showRoleChange = false
     @Published var showExportPicker = false
@@ -103,6 +104,11 @@ final class SettingsViewModel: ObservableObject {
         let trimmed = backgroundRelayAPIKey.trimmed
         AppConfiguration.backgroundRelayAPIKey = trimmed.isEmpty ? nil : trimmed
         backgroundRelayAPIKey = AppConfiguration.backgroundRelayAPIKey ?? ""
+    }
+
+    func saveExperimentalBackgroundKeepAlive(_ enabled: Bool) {
+        experimentalBackgroundKeepAliveEnabled = enabled
+        AppConfiguration.experimentalBackgroundKeepAliveEnabled = enabled
     }
 
     func changeRole(_ role: DeviceRole) {

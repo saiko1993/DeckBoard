@@ -24,6 +24,10 @@ final class ButtonEditorViewModel: ObservableObject {
     @Published var cooldownSeconds: Double = 0
     @Published var cornerRadius: Double = 14
     @Published var iconScale: Double = 1.0
+    @Published var targetPolicy: ActionTargetPolicy = .preferReceiver
+    @Published var backgroundFallback: BackgroundFallbackPolicy = .relay
+    @Published var retryCount: Double = 1
+    @Published var timeoutSeconds: Double = 12
 
     var isValid: Bool {
         !title.trimmed.isEmpty
@@ -53,6 +57,10 @@ final class ButtonEditorViewModel: ObservableObject {
         cooldownSeconds = button.config.cooldownSeconds
         cornerRadius = button.config.cornerRadius
         iconScale = button.config.iconScale
+        targetPolicy = button.config.targetPolicy
+        backgroundFallback = button.config.backgroundFallback
+        retryCount = Double(button.config.retryCount)
+        timeoutSeconds = button.config.timeoutSeconds
         extractPayloads(from: button.action)
     }
 
@@ -92,7 +100,11 @@ final class ButtonEditorViewModel: ObservableObject {
             showStatusIndicator: true,
             cornerRadius: cornerRadius,
             iconScale: iconScale,
-            subtitle: subtitle.trimmed.isEmpty ? nil : subtitle.trimmed
+            subtitle: subtitle.trimmed.isEmpty ? nil : subtitle.trimmed,
+            targetPolicy: targetPolicy,
+            backgroundFallback: backgroundFallback,
+            retryCount: Int(retryCount.rounded()),
+            timeoutSeconds: timeoutSeconds
         )
         return DeskButton(
             id: id,

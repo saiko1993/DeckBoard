@@ -61,5 +61,7 @@ Thumbs.db
 ios/
 android/
 core
+!Sources/DeskBoard/Core
+!Sources/DeskBoard/Core/**
 node_modules
 .expo

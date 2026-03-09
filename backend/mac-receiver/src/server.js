@@ -4,6 +4,12 @@ const { execFile } = require('child_process');
 const PORT = Number(process.env.PORT || 7788);
 const API_KEY = process.env.DESKBOARD_API_KEY || '';
 const MAX_BODY_BYTES = 256 * 1024;
+const PROTOCOL_VERSION = 2;
+const SERVICE_VERSION = '1.1.0';
+const IDEMPOTENCY_TTL_MS = 2 * 60 * 1000;
+
+const startedAtMs = Date.now();
+const idempotencyCache = new Map();
 
 const APP_NAME_BY_ID = {
   youtube: 'YouTube',
@@ -60,6 +66,7 @@ const MODIFIER_MAP = {
 const ACTION_CAPABILITIES = [
   'open_url',
   'open_deep_link',
+  'send_text',
   'open_app',
   'run_shortcut',
   'run_script',
@@ -88,6 +95,38 @@ const ACTION_CAPABILITIES = [
   'macro'
 ];
 
+const CAPABILITY_METADATA = {
+  open_url: { category: 'general', foregroundRequired: false },
+  open_deep_link: { category: 'general', foregroundRequired: false },
+  send_text: { category: 'general', foregroundRequired: false },
+  open_app: { category: 'apps', foregroundRequired: false },
+  run_shortcut: { category: 'shortcuts', foregroundRequired: false },
+  run_script: { category: 'shortcuts', foregroundRequired: false },
+  keyboard_shortcut: { category: 'keyboard', foregroundRequired: false },
+  toggle_dark_mode: { category: 'device', foregroundRequired: false },
+  screenshot: { category: 'device', foregroundRequired: false },
+  screen_record: { category: 'device', foregroundRequired: false },
+  sleep_display: { category: 'device', foregroundRequired: false },
+  lock_screen: { category: 'device', foregroundRequired: false },
+  open_terminal: { category: 'apps', foregroundRequired: false },
+  force_quit_app: { category: 'device', foregroundRequired: false },
+  empty_trash: { category: 'device', foregroundRequired: false },
+  toggle_dnd: { category: 'device', foregroundRequired: false },
+  presentation_next: { category: 'presentation', foregroundRequired: false },
+  presentation_previous: { category: 'presentation', foregroundRequired: false },
+  presentation_start: { category: 'presentation', foregroundRequired: false },
+  presentation_end: { category: 'presentation', foregroundRequired: false },
+  media_play: { category: 'media', foregroundRequired: false },
+  media_pause: { category: 'media', foregroundRequired: false },
+  media_play_pause: { category: 'media', foregroundRequired: false },
+  media_next: { category: 'media', foregroundRequired: false },
+  media_previous: { category: 'media', foregroundRequired: false },
+  media_volume_up: { category: 'media', foregroundRequired: false },
+  media_volume_down: { category: 'media', foregroundRequired: false },
+  media_mute: { category: 'media', foregroundRequired: false },
+  macro: { category: 'macro', foregroundRequired: false }
+};
+
 function sendJSON(res, statusCode, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
@@ -95,6 +134,16 @@ function sendJSON(res, statusCode, payload) {
     'content-length': Buffer.byteLength(body)
   });
   res.end(body);
+}
+
+function logEvent(level, message, details = {}) {
+  const row = {
+    ts: new Date().toISOString(),
+    level,
+    msg: message,
+    ...details
+  };
+  process.stdout.write(`${JSON.stringify(row)}\n`);
 }
 
 function readJSON(req) {
@@ -191,12 +240,24 @@ function buildKeystrokeScript(keyValue, modifiers) {
   return `tell application "System Events" to keystroke "${escaped}"${modsScript}`;
 }
 
+function pruneIdempotencyCache() {
+  const now = Date.now();
+  for (const [key, record] of idempotencyCache.entries()) {
+    if (record.expiresAtMs <= now) {
+      idempotencyCache.delete(key);
+    }
+  }
+}
+
 async function executeAction(action) {
   const kind = String(action.kind || '').trim();
+  if (!ACTION_CAPABILITIES.includes(kind)) {
+    return { ok: false, error: `Unsupported action kind: ${kind}`, errorCode: 'unsupported_action' };
+  }
 
   switch (kind) {
     case 'none':
-      return { ok: false, error: 'No action' };
+      return { ok: false, error: 'No action', errorCode: 'empty_action' };
 
     case 'open_url':
     case 'open_deep_link': {
@@ -206,6 +267,12 @@ async function executeAction(action) {
       }
       await runFile('/usr/bin/open', [value]);
       return { ok: true, detail: `Opened ${value}` };
+    }
+
+    case 'send_text': {
+      const value = String(action.value || '').trim();
+      await runAppleScript(`set the clipboard to \"${value.replace(/\"/g, '\\\\\"')}\"`);
+      return { ok: true, detail: 'Copied text to clipboard' };
     }
 
     case 'open_app': {
@@ -357,19 +424,22 @@ async function executeAction(action) {
     case 'macro': {
       const actions = Array.isArray(action.actions) ? action.actions : [];
       for (const step of actions) {
-        await executeAction(step);
+        const result = await executeAction(step);
+        if (!result.ok) {
+          return result;
+        }
       }
       return { ok: true, detail: `Macro executed (${actions.length} steps)` };
     }
 
     default:
-      return { ok: false, error: `Unsupported action kind: ${kind}` };
+      return { ok: false, error: `Unsupported action kind: ${kind}`, errorCode: 'unsupported_action' };
   }
 }
 
 async function handleExecute(req, res) {
   if (!requireAuth(req)) {
-    sendJSON(res, 401, { ok: false, error: 'Unauthorized' });
+    sendJSON(res, 401, { ok: false, error: 'Unauthorized', errorCode: 'unauthorized' });
     return;
   }
 
@@ -377,30 +447,98 @@ async function handleExecute(req, res) {
   try {
     body = await readJSON(req);
   } catch (error) {
-    sendJSON(res, 400, { ok: false, error: error.message });
+    sendJSON(res, 400, { ok: false, error: error.message, errorCode: 'invalid_json' });
     return;
   }
 
   const action = body && typeof body === 'object' ? body.action : null;
   if (!action || typeof action !== 'object') {
-    sendJSON(res, 400, { ok: false, error: 'Missing action object' });
+    sendJSON(res, 400, { ok: false, error: 'Missing action object', errorCode: 'missing_action' });
     return;
   }
 
+  const traceID = String(body.traceID || req.headers['x-trace-id'] || '').trim() || 'trace-unknown';
+  const idempotencyKey = String(body.idempotencyKey || req.headers['x-idempotency-key'] || '').trim();
+  const reason = body.reason || null;
+  const sourceDeviceName = body.sourceDeviceName || null;
+  const attempt = Number(body.attempt || 1) > 0 ? Number(body.attempt) : 1;
+
+  pruneIdempotencyCache();
+
+  if (idempotencyKey && idempotencyCache.has(idempotencyKey)) {
+    const cached = idempotencyCache.get(idempotencyKey);
+    sendJSON(res, cached.statusCode, {
+      ...cached.payload,
+      deduplicated: true
+    });
+    return;
+  }
+
+  const startedMs = Date.now();
+
   try {
     const result = await executeAction(action);
+    const latencyMs = Date.now() - startedMs;
     if (result.ok) {
-      sendJSON(res, 200, {
+      const payload = {
         ok: true,
         detail: result.detail || null,
-        reason: body.reason || null,
-        sourceDeviceName: body.sourceDeviceName || null
-      });
+        reason,
+        sourceDeviceName,
+        traceID,
+        executor: 'mac_relay',
+        latencyMs,
+        protocolVersion: PROTOCOL_VERSION
+      };
+      if (idempotencyKey) {
+        idempotencyCache.set(idempotencyKey, {
+          statusCode: 200,
+          payload,
+          expiresAtMs: Date.now() + IDEMPOTENCY_TTL_MS
+        });
+      }
+      logEvent('info', 'relay_execute_success', { traceID, action: action.kind, latencyMs, attempt });
+      sendJSON(res, 200, payload);
     } else {
-      sendJSON(res, 422, { ok: false, error: result.error || 'Action failed' });
+      const payload = {
+        ok: false,
+        error: result.error || 'Action failed',
+        errorCode: result.errorCode || 'execution_failed',
+        traceID,
+        executor: 'mac_relay',
+        latencyMs,
+        protocolVersion: PROTOCOL_VERSION
+      };
+      if (idempotencyKey) {
+        idempotencyCache.set(idempotencyKey, {
+          statusCode: 422,
+          payload,
+          expiresAtMs: Date.now() + IDEMPOTENCY_TTL_MS
+        });
+      }
+      logEvent('warn', 'relay_execute_rejected', { traceID, action: action.kind, latencyMs, attempt, errorCode: payload.errorCode });
+      sendJSON(res, 422, payload);
     }
   } catch (error) {
-    sendJSON(res, 500, { ok: false, error: error.message || 'Execution failed' });
+    const latencyMs = Date.now() - startedMs;
+    const payload = {
+      ok: false,
+      error: error.message || 'Execution failed',
+      errorCode: 'execution_exception',
+      traceID,
+      executor: 'mac_relay',
+      latencyMs,
+      protocolVersion: PROTOCOL_VERSION
+    };
+    if (idempotencyKey) {
+      idempotencyCache.set(idempotencyKey, {
+        statusCode: 500,
+        payload,
+        expiresAtMs: Date.now() + IDEMPOTENCY_TTL_MS
+      });
+    }
+    logEvent('error', 'relay_execute_error', { traceID, action: action.kind, latencyMs, attempt, error: payload.error });
+    sendJSON(res, 500, payload);
   }
 }
 
@@ -411,7 +549,19 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && req.url === '/health') {
-    sendJSON(res, 200, { ok: true, service: 'deskboard-mac-receiver' });
+    pruneIdempotencyCache();
+    sendJSON(res, 200, {
+      ok: true,
+      service: 'deskboard-mac-receiver',
+      serviceVersion: SERVICE_VERSION,
+      protocolVersion: PROTOCOL_VERSION,
+      readiness: {
+        apiKeyConfigured: API_KEY.length > 0,
+        capabilitiesCount: ACTION_CAPABILITIES.length,
+        idempotencyCacheSize: idempotencyCache.size
+      },
+      uptimeSeconds: Math.floor((Date.now() - startedAtMs) / 1000)
+    });
     return;
   }
 
@@ -419,7 +569,10 @@ const server = http.createServer(async (req, res) => {
     sendJSON(res, 200, {
       ok: true,
       service: 'deskboard-mac-receiver',
-      capabilities: ACTION_CAPABILITIES
+      serviceVersion: SERVICE_VERSION,
+      protocolVersion: PROTOCOL_VERSION,
+      capabilities: ACTION_CAPABILITIES,
+      metadata: CAPABILITY_METADATA
     });
     return;
   }

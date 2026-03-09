@@ -42,9 +42,10 @@ final class AppState: ObservableObject {
     private var hasBootstrapped = false
     private var configuredRole: DeviceRole = .unset
     private var configuredDeviceName: String = ""
-    private var deferredForegroundActions: [DeferredAction] = []
+    private var deferredForegroundActions: [DeferredExecutionAction] = []
     private var pendingSentCommands: [UUID: PendingSentCommand] = [:]
     private let stateLog = Logger(subsystem: "com.deskboard", category: "AppState")
+    private let executionRouter = ExecutionRouter.shared
 
     init(
         peerSession: PeerSession = .shared,
@@ -74,7 +75,13 @@ final class AppState: ObservableObject {
     private func bindPeerSession() {
         peerSession.$connectionState
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] state in self?.connectionState = state }
+            .sink { [weak self] state in
+                guard let self else { return }
+                self.connectionState = state
+                if state.isConnected {
+                    self.resendPendingCommandsOnReconnect()
+                }
+            }
             .store(in: &cancellables)
 
         peerSession.$discoveredPeers
@@ -114,6 +121,7 @@ final class AppState: ObservableObject {
         peerSession.setAutoReconnectEnabled(AppConfiguration.autoReconnect)
         peerSession.enterForeground()
         flushDeferredForegroundActionsIfNeeded()
+        handlePendingIntentActionIfNeeded()
     }
 
     func handleEnteredBackground() {
@@ -177,18 +185,32 @@ final class AppState: ObservableObject {
         if hapticEnabled && button.hapticFeedback {
             HapticManager.shared.medium()
         }
+        let maxAttempts = max(1, button.config.retryCount + 1)
+        let timeoutSeconds = max(3, Int(button.config.timeoutSeconds.rounded()))
         let message = CommandMessage(
             type: .action,
             payload: .buttonAction(action),
-            senderID: deviceName
+            senderID: deviceName,
+            protocolVersion: 2,
+            originDeviceUUID: PeerSession.stableDeviceUUID,
+            traceID: UUID().uuidString,
+            deliveryPolicy: button.config.retryCount > 0 ? .atLeastOnce : .bestEffort,
+            ttlSeconds: timeoutSeconds,
+            targetPolicy: button.config.targetPolicy,
+            backgroundFallback: button.config.backgroundFallback,
+            attempt: 1,
+            maxAttempts: maxAttempts
         )
         pendingSentCommands[message.id] = PendingSentCommand(
             commandID: message.id,
             buttonID: button.id,
             buttonTitle: button.title,
             action: action,
+            message: message,
+            attempt: 1,
+            maxAttempts: maxAttempts,
             sentAt: Date(),
-            timeoutAt: Date().addingTimeInterval(12)
+            timeoutAt: Date().addingTimeInterval(TimeInterval(timeoutSeconds))
         )
         senderButtonStates[button.id] = .running
         peerSession.send(command: message)
@@ -204,7 +226,7 @@ final class AppState: ObservableObject {
                 HapticManager.shared.light()
             }
             Task { @MainActor in
-                await processIncomingAction(commandID: command.id, action: action)
+                await processIncomingAction(command: command, action: action)
             }
 
         case .actionResult(let report):
@@ -216,59 +238,50 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func processIncomingAction(commandID: UUID, action: ButtonAction) async {
-        if action.requiresForegroundOnIOSReceiver,
-           UIApplication.shared.applicationState != .active {
-            let relayResult = await BackgroundCommandRelayService.shared.forward(
-                action: action,
-                sourceDeviceName: deviceName,
-                reason: "receiver_background_foreground_required"
-            )
+    private func processIncomingAction(command: CommandMessage, action: ButtonAction) async {
+        let routingContext = ActionRoutingContext(
+            commandID: command.id,
+            traceID: command.traceID,
+            attempt: command.attempt,
+            maxAttempts: command.maxAttempts,
+            targetPolicy: command.targetPolicy ?? .preferReceiver,
+            fallbackPolicy: command.backgroundFallback ?? .relay,
+            ttlSeconds: command.ttlSeconds
+        )
 
-            if relayResult.success {
-                sendActionExecutionReport(
-                    commandID: commandID,
-                    status: .forwarded,
-                    detail: relayResult.detail ?? "Executed via Mac relay",
-                    target: "mac_relay"
-                )
-                return
-            }
-
-            let queuePosition = enqueueDeferredForegroundAction(commandID: commandID, action: action)
-            sendActionExecutionReport(
-                commandID: commandID,
-                status: .queued,
-                detail: "Queued until receiver returns to foreground",
-                target: "ios_receiver",
-                queuePosition: queuePosition
-            )
-            return
-        }
-
-        let result = await executeActionAndReturnResult(action)
-        if !result.isSuccess {
-            let relayFallback = await BackgroundCommandRelayService.shared.forward(
-                action: action,
-                sourceDeviceName: deviceName,
-                reason: "receiver_local_execution_failed"
-            )
-            if relayFallback.success {
-                sendActionExecutionReport(
-                    commandID: commandID,
-                    status: .forwarded,
-                    detail: relayFallback.detail ?? "Executed via Mac relay",
-                    target: "mac_relay"
-                )
-                return
-            }
-        }
-        let status: RemoteActionStatus = result.isSuccess ? .success : .failed
         sendActionExecutionReport(
-            commandID: commandID,
-            status: status,
-            detail: result.displayText,
-            target: "ios_receiver"
+            commandID: command.id,
+            status: .received,
+            detail: "Command received",
+            executor: .iosReceiver,
+            attempt: command.attempt
+        )
+
+        let routed = await executionRouter.route(
+            action: action,
+            context: routingContext,
+            sourceDeviceName: deviceName,
+            executeLocal: { [weak self] action in
+                guard let self else {
+                    return .failure(error: "Receiver unavailable")
+                }
+                return await self.executeActionAndReturnResult(action)
+            },
+            enqueueDeferred: { [weak self] deferred in
+                guard let self else { return 1 }
+                return self.enqueueDeferredForegroundAction(deferred)
+            }
+        )
+
+        sendActionExecutionReport(
+            commandID: command.id,
+            status: routed.status,
+            detail: routed.detail,
+            executor: routed.executor,
+            queuePosition: routed.queuePosition,
+            errorCode: routed.errorCode,
+            attempt: command.attempt,
+            latencyMs: routed.latencyMs
         )
     }
 
@@ -406,18 +419,12 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func enqueueDeferredForegroundAction(commandID: UUID, action: ButtonAction) -> Int {
-        if deferredForegroundActions.contains(where: { $0.commandID == commandID }) {
-            return deferredForegroundActions.firstIndex(where: { $0.commandID == commandID }).map { $0 + 1 } ?? 1
+    private func enqueueDeferredForegroundAction(_ deferred: DeferredExecutionAction) -> Int {
+        if deferredForegroundActions.contains(where: { $0.context.commandID == deferred.context.commandID }) {
+            return deferredForegroundActions.firstIndex(where: { $0.context.commandID == deferred.context.commandID }).map { $0 + 1 } ?? 1
         }
 
-        deferredForegroundActions.append(
-            DeferredAction(
-                commandID: commandID,
-                action: action,
-                queuedAt: Date()
-            )
-        )
+        deferredForegroundActions.append(deferred)
         if deferredForegroundActions.count > 80 {
             deferredForegroundActions.removeFirst(deferredForegroundActions.count - 80)
         }
@@ -435,29 +442,25 @@ final class AppState: ObservableObject {
 
         Task { @MainActor in
             for deferred in pendingActions {
-                let result = await executeActionAndReturnResult(deferred.action)
-                var status: RemoteActionStatus = result.isSuccess ? .success : .failed
-                var detail = result.displayText
-                var target = "ios_receiver"
-
-                if !result.isSuccess {
-                    let relayFallback = await BackgroundCommandRelayService.shared.forward(
-                        action: deferred.action,
-                        sourceDeviceName: deviceName,
-                        reason: "deferred_execution_local_failed"
-                    )
-                    if relayFallback.success {
-                        status = .forwarded
-                        detail = relayFallback.detail ?? "Executed via Mac relay"
-                        target = "mac_relay"
+                let routed = await executionRouter.routeDeferred(
+                    deferred: deferred,
+                    sourceDeviceName: deviceName,
+                    executeLocal: { [weak self] action in
+                        guard let self else {
+                            return .failure(error: "Receiver unavailable")
+                        }
+                        return await self.executeActionAndReturnResult(action)
                     }
-                }
+                )
 
                 sendActionExecutionReport(
-                    commandID: deferred.commandID,
-                    status: status,
-                    detail: detail,
-                    target: target
+                    commandID: deferred.context.commandID,
+                    status: routed.status,
+                    detail: routed.detail,
+                    executor: routed.executor,
+                    errorCode: routed.errorCode,
+                    attempt: deferred.context.attempt,
+                    latencyMs: routed.latencyMs
                 )
                 try? await Task.sleep(for: .milliseconds(120))
             }
@@ -468,20 +471,32 @@ final class AppState: ObservableObject {
         commandID: UUID,
         status: RemoteActionStatus,
         detail: String?,
-        target: String,
-        queuePosition: Int? = nil
+        executor: CommandExecutor,
+        queuePosition: Int? = nil,
+        errorCode: String? = nil,
+        attempt: Int = 1,
+        latencyMs: Int? = nil
     ) {
         let report = ActionExecutionReport(
             commandID: commandID,
             status: status,
             detail: detail,
-            target: target,
-            queuePosition: queuePosition
+            target: executor.rawValue,
+            queuePosition: queuePosition,
+            executor: executor,
+            errorCode: errorCode,
+            attempt: attempt,
+            latencyMs: latencyMs
         )
         let message = CommandMessage(
             type: .actionResult,
             payload: .actionResult(report),
-            senderID: deviceName
+            senderID: deviceName,
+            protocolVersion: 2,
+            originDeviceUUID: PeerSession.stableDeviceUUID,
+            traceID: UUID().uuidString,
+            deliveryPolicy: .bestEffort,
+            ttlSeconds: 30
         )
         peerSession.send(command: message)
     }
@@ -531,23 +546,53 @@ final class AppState: ObservableObject {
             while let pending = pendingSentCommands[commandID] {
                 let remaining = pending.timeoutAt.timeIntervalSinceNow
                 if remaining <= 0 {
-                    pendingSentCommands.removeValue(forKey: commandID)
-                    senderButtonStates[pending.buttonID] = .failed("Timed out")
+                    if pending.attempt < pending.maxAttempts {
+                        var updated = pending
+                        updated.attempt += 1
+                        let timeout = TimeInterval(updated.message.ttlSeconds ?? 12)
+                        updated.timeoutAt = Date().addingTimeInterval(max(3, timeout))
+                        updated.message = updated.message.withAttempt(updated.attempt)
+                        pendingSentCommands[commandID] = updated
 
-                    let report = ActionExecutionReport(
-                        commandID: commandID,
-                        status: .timeout,
-                        detail: "No confirmation from receiver",
-                        target: "network"
-                    )
-                    appendExecutionLog(for: pending, report: report)
-                    scheduleSenderButtonStateReset(buttonID: pending.buttonID, expected: .failed(""), delayMS: 2400)
-                    stateLog.error("SEND-ACK-001 Command timeout commandID=\(commandID.uuidString, privacy: .public)")
-                    return
+                        peerSession.send(command: updated.message)
+                        senderButtonStates[pending.buttonID] = .running
+                        stateLog.info(
+                            "SEND-RETRY-001 Retry commandID=\(commandID.uuidString, privacy: .public) attempt=\(updated.attempt, privacy: .public)"
+                        )
+                        continue
+                    } else {
+                        pendingSentCommands.removeValue(forKey: commandID)
+                        senderButtonStates[pending.buttonID] = .failed("Timed out")
+
+                        let report = ActionExecutionReport(
+                            commandID: commandID,
+                            status: .timeout,
+                            detail: "No confirmation from receiver",
+                            target: CommandExecutor.network.rawValue,
+                            executor: .network,
+                            errorCode: "timeout_no_ack",
+                            attempt: pending.attempt
+                        )
+                        appendExecutionLog(for: pending, report: report)
+                        scheduleSenderButtonStateReset(buttonID: pending.buttonID, expected: .failed(""), delayMS: 2400)
+                        stateLog.error("SEND-ACK-001 Command timeout commandID=\(commandID.uuidString, privacy: .public)")
+                        return
+                    }
                 }
 
                 let interval = min(max(remaining, 0.5), 2.0)
                 try? await Task.sleep(for: .seconds(interval))
+            }
+        }
+    }
+
+    private func resendPendingCommandsOnReconnect() {
+        guard !pendingSentCommands.isEmpty else { return }
+        let now = Date()
+        for (commandID, pending) in pendingSentCommands {
+            if pending.timeoutAt > now {
+                peerSession.send(command: pending.message)
+                stateLog.info("SEND-OUTBOX-001 Resent commandID=\(commandID.uuidString, privacy: .public) on reconnect")
             }
         }
     }
@@ -591,7 +636,7 @@ final class AppState: ObservableObject {
             case .connected(let device):
                 return device.displayName
             default:
-                return report.target
+                return report.target ?? report.executor.rawValue
             }
         }()
 
@@ -654,6 +699,47 @@ final class AppState: ObservableObject {
         }
     }
 
+    private func handlePendingIntentActionIfNeeded() {
+        guard let raw = UserDefaults.standard.string(forKey: AppConfiguration.Keys.pendingIntentAction) else {
+            return
+        }
+        UserDefaults.standard.removeObject(forKey: AppConfiguration.Keys.pendingIntentAction)
+
+        let action: ButtonAction
+        switch raw {
+        case "media_play_pause":
+            action = .mediaPlayPause
+        case "media_volume_up":
+            action = .mediaVolumeUp
+        case "media_volume_down":
+            action = .mediaVolumeDown
+        case "media_next":
+            action = .mediaNext
+        case "media_previous":
+            action = .mediaPrevious
+        default:
+            return
+        }
+
+        switch deviceRole {
+        case .sender:
+            let quickButton = DeskButton(
+                title: "Quick Action",
+                icon: action.systemImage,
+                action: action
+            )
+            send(action: action, button: quickButton)
+
+        case .receiver:
+            Task { @MainActor in
+                _ = await executeActionAndReturnResult(action)
+            }
+
+        case .unset:
+            break
+        }
+    }
+
     func disconnect() {
         pendingSentCommands.removeAll()
         senderButtonStates.removeAll()
@@ -661,17 +747,14 @@ final class AppState: ObservableObject {
     }
 }
 
-private nonisolated struct DeferredAction: Sendable {
-    let commandID: UUID
-    let action: ButtonAction
-    let queuedAt: Date
-}
-
 private nonisolated struct PendingSentCommand: Sendable {
     let commandID: UUID
     let buttonID: UUID
     let buttonTitle: String
     let action: ButtonAction
+    var message: CommandMessage
+    var attempt: Int
+    let maxAttempts: Int
     let sentAt: Date
     var timeoutAt: Date
 }
@@ -711,17 +794,25 @@ actor BackgroundCommandRelayService {
         session = URLSession(configuration: config)
     }
 
-    func forward(action: ButtonAction, sourceDeviceName: String, reason: String) async -> RelayForwardResult {
+    func forward(
+        action: ButtonAction,
+        sourceDeviceName: String,
+        reason: String,
+        traceID: String,
+        idempotencyKey: String,
+        attempt: Int,
+        ttlSeconds: Int?
+    ) async -> RelayForwardResult {
         guard AppConfiguration.backgroundRelayEnabled else {
-            return RelayForwardResult(success: false, detail: "Relay disabled")
+            return RelayForwardResult(success: false, detail: "Relay disabled", errorCode: "relay_disabled")
         }
         guard let baseURL = AppConfiguration.backgroundRelayBaseURL else {
-            return RelayForwardResult(success: false, detail: "Relay URL missing")
+            return RelayForwardResult(success: false, detail: "Relay URL missing", errorCode: "relay_url_missing")
         }
 
         let relayAction = RelayActionPayload(action: action)
         guard relayAction.kind != "none" else {
-            return RelayForwardResult(success: false, detail: "No action")
+            return RelayForwardResult(success: false, detail: "No action", errorCode: "empty_action")
         }
 
         let body = RelayCommandRequest(
@@ -729,6 +820,10 @@ actor BackgroundCommandRelayService {
             sourceDeviceName: sourceDeviceName,
             appVersion: AppConfiguration.appVersion,
             reason: reason,
+            traceID: traceID,
+            idempotencyKey: idempotencyKey,
+            attempt: max(1, attempt),
+            ttlSeconds: ttlSeconds,
             action: relayAction
         )
 
@@ -736,6 +831,7 @@ actor BackgroundCommandRelayService {
             var request = URLRequest(url: baseURL.appendingPathComponent("v1/execute"))
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(idempotencyKey, forHTTPHeaderField: "x-idempotency-key")
             if let apiKey = AppConfiguration.backgroundRelayAPIKey?.trimmed, !apiKey.isEmpty {
                 request.setValue(apiKey, forHTTPHeaderField: "x-deskboard-key")
             }
@@ -749,13 +845,23 @@ actor BackgroundCommandRelayService {
 
             if (200...299).contains(http.statusCode) {
                 log.info("RELAY-001 Forwarded action=\(relayAction.kind, privacy: .public)")
-                return RelayForwardResult(success: true, detail: relayResponse?.detail ?? "Executed via relay")
+                return RelayForwardResult(
+                    success: true,
+                    detail: relayResponse?.detail ?? "Executed via relay",
+                    errorCode: nil,
+                    executor: relayResponse?.executor ?? .macRelay,
+                    latencyMs: relayResponse?.latencyMs
+                )
             }
             log.error("RELAY-002 Relay failed status=\(http.statusCode, privacy: .public)")
-            return RelayForwardResult(success: false, detail: relayResponse?.error ?? "Relay status \(http.statusCode)")
+            return RelayForwardResult(
+                success: false,
+                detail: relayResponse?.error ?? "Relay status \(http.statusCode)",
+                errorCode: relayResponse?.errorCode ?? "relay_http_\(http.statusCode)"
+            )
         } catch {
             log.error("RELAY-003 Relay request failed: \(String(describing: error), privacy: .public)")
-            return RelayForwardResult(success: false, detail: "Relay request failed")
+            return RelayForwardResult(success: false, detail: "Relay request failed", errorCode: "relay_request_failed")
         }
     }
 }
@@ -892,6 +998,10 @@ private nonisolated struct RelayCommandRequest: Codable, Sendable {
     let sourceDeviceName: String
     let appVersion: String
     let reason: String
+    let traceID: String
+    let idempotencyKey: String
+    let attempt: Int
+    let ttlSeconds: Int?
     let action: RelayActionPayload
 }
 
@@ -899,11 +1009,31 @@ private nonisolated struct RelayExecuteResponse: Codable, Sendable {
     let ok: Bool
     let detail: String?
     let error: String?
+    let errorCode: String?
+    let executor: CommandExecutor?
+    let latencyMs: Int?
 }
 
 nonisolated struct RelayForwardResult: Sendable {
     let success: Bool
     let detail: String?
+    let errorCode: String?
+    let executor: CommandExecutor
+    let latencyMs: Int?
+
+    init(
+        success: Bool,
+        detail: String?,
+        errorCode: String? = nil,
+        executor: CommandExecutor = .macRelay,
+        latencyMs: Int? = nil
+    ) {
+        self.success = success
+        self.detail = detail
+        self.errorCode = errorCode
+        self.executor = executor
+        self.latencyMs = latencyMs
+    }
 }
 
 private nonisolated struct RelayActionPayload: Codable, Sendable {

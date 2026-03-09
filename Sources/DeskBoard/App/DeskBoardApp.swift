@@ -10,7 +10,7 @@ struct DeskBoardApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(appState)
-                .onChange(of: scenePhase) { _, newPhase in
+                .onChange(of: scenePhase) { newPhase in
                     handleScenePhase(newPhase)
                 }
                 .task {
