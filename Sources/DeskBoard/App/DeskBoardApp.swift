@@ -10,7 +10,7 @@ struct DeskBoardApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(appState)
-                .onChange(of: scenePhase) { newPhase in
+                .onChange(of: scenePhase) { _, newPhase in
                     handleScenePhase(newPhase)
                 }
                 .onOpenURL { url in

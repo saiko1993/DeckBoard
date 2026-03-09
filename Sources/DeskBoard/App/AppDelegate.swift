@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     }
 
     nonisolated func applicationWillTerminate(_ application: UIApplication) {
-        DispatchQueue.main.async {
+        Task { @MainActor in
             PeerSession.shared.stopAll()
         }
     }
@@ -99,11 +99,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         task.expirationHandler = {
             task.setTaskCompleted(success: false)
         }
-        let session = PeerSession.shared
-        if AppConfiguration.autoReconnect && !session.isConnected {
-            session.attemptQuickReconnect()
+        DispatchQueue.main.async {
+            let session = PeerSession.shared
+            if AppConfiguration.autoReconnect && !session.isConnected {
+                session.attemptQuickReconnect()
+            }
+            task.setTaskCompleted(success: true)
         }
-        task.setTaskCompleted(success: true)
         scheduleBGRefresh()
     }
 }

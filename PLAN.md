@@ -10,21 +10,21 @@ The app crashes at launch or shortly after reaching the start screen. The root c
 ## Fixes
 
 ### 1. Thread Safety for Data Types
-- Mark all pure data models (messages, device info, connection states, configs, etc.) as safe to use from any thread
-- This prevents crashes when network delegate callbacks create these objects on background threads
+- [x] Mark all pure data models (messages, device info, connection states, configs, etc.) as safe to use from any thread
+- [x] This prevents crashes when network delegate callbacks create these objects on background threads
 
 ### 2. Safer App Lifecycle
-- Remove the blocking sleep call during app termination that can freeze the main thread
-- Make background/termination handlers dispatch work properly instead of directly calling shared resources
-- Wrap background task registration in safety checks
+- [x] Remove the blocking sleep call during app termination that can freeze the main thread
+- [x] Make background/termination handlers dispatch work properly instead of directly calling shared resources
+- [x] Wrap background task registration in safety checks
 
 ### 3. Safer Network Session Startup
-- Delay network session initialization slightly after app launch to avoid overwhelming the system
-- Add guards to prevent multiple simultaneous initialization attempts
-- Protect against crashes when creating network sessions
+- [x] Delay network session initialization slightly after app launch to avoid overwhelming the system
+- [x] Add guards to prevent multiple simultaneous initialization attempts
+- [x] Protect against crashes when creating network sessions
 
 ### 4. Safer Delegate Callbacks
-- Ensure all network delegate callbacks properly handle the case where the session has been replaced or destroyed
-- Add nil checks and guards to prevent accessing deallocated resources
+- [x] Ensure all network delegate callbacks properly handle the case where the session has been replaced or destroyed
+- [x] Add nil checks and guards to prevent accessing deallocated resources
 
 These changes are targeted fixes — no architecture changes, no new features. The goal is to eliminate the launch crashes while keeping all existing functionality intact.
