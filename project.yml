@@ -74,6 +74,9 @@ targets:
         UIBackgroundModes:
           - fetch
           - processing
+          - audio
+          - bluetooth-central
+          - bluetooth-peripheral
         BGTaskSchedulerPermittedIdentifiers:
           - com.deskboard.connection-keepalive
         NSAppleMusicUsageDescription: "DeskBoard needs media library access to control music playback on this device."

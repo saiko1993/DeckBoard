@@ -1,5 +1,6 @@
 import Foundation
 import os.log
+import AVFAudio
 @preconcurrency import MultipeerConnectivity
 @preconcurrency import KeychainAccess
 
@@ -61,11 +62,13 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private var isReconnecting: Bool = false
     private var pendingInvitePeers: Set<String> = []
     private var isInForeground: Bool = true
+    private var backgroundNetworkingEnabled: Bool = false
     private var isServicesRunning: Bool = false
     private var isEnteringForeground: Bool = false
 
     private let staleConnectionTimeout: TimeInterval = 90
     private let maxStaleMisses: Int = 3
+    private var canRunNetworking: Bool { isInForeground || backgroundNetworkingEnabled }
 
     private let timerQueue = DispatchQueue(label: "com.deskboard.peersession.timers", qos: .userInitiated)
     private let sessionLock = NSLock()
@@ -272,8 +275,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         isReconnecting = false
         isServicesRunning = false
         isEnteringForeground = false
+        backgroundNetworkingEnabled = false
         pendingInvitePeers = []
         staleMissCount = 0
+        BackgroundKeepAliveService.shared.stop()
         cancelAllTimers()
         sessionLock.lock()
         stopAdvertisingInternal()
@@ -338,8 +343,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         isReconnecting = false
         isServicesRunning = false
         isEnteringForeground = false
+        backgroundNetworkingEnabled = false
         pendingInvitePeers = []
         staleMissCount = 0
+        BackgroundKeepAliveService.shared.stop()
         cancelAllTimers()
         sessionLock.lock()
         stopAdvertisingInternal()
@@ -366,6 +373,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             isReconnecting = false
             return
         }
+        backgroundNetworkingEnabled = false
+        BackgroundKeepAliveService.shared.stop()
         isReconnecting = false
         stopReconnectTimer()
     }
@@ -377,7 +386,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         return !session.connectedPeers.isEmpty
     }
 
-    // MARK: - Timers (foreground only)
+    // MARK: - Timers
 
     private func cancelAllTimers() {
         stopReconnectTimer()
@@ -413,7 +422,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     }
 
     private func scheduleReconnect() {
-        guard isInForeground else { return }
+        guard canRunNetworking else { return }
         guard autoReconnectEnabled, currentRole != .unset else { return }
         guard reconnectAttempts < maxReconnectAttempts else { return }
         guard !isReconnecting else { return }
@@ -435,7 +444,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     }
 
     private func attemptReconnect() {
-        guard isInForeground else {
+        guard canRunNetworking else {
             isReconnecting = false
             return
         }
@@ -485,10 +494,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         return myPeer.displayName.compare(remotePeer.displayName) == .orderedDescending
     }
 
-    // MARK: - Heartbeat & Stale Detection (foreground only)
+    // MARK: - Heartbeat & Stale Detection
 
     private func startHeartbeat() {
-        guard isInForeground else { return }
+        guard canRunNetworking else { return }
         if heartbeatTimer != nil && staleCheckTimer != nil { return }
         stopHeartbeatTimer()
         stopStaleCheckTimer()
@@ -501,7 +510,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         hbTimer.setEventHandler { [weak self] in
             guard let strongSelf = self else { return }
             DispatchQueue.main.async {
-                guard strongSelf.isInForeground else { return }
+                guard strongSelf.canRunNetworking else { return }
                 if strongSelf.isConnected {
                     let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: deviceName)
                     strongSelf.send(command: msg)
@@ -519,7 +528,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         scTimer.setEventHandler { [weak self] in
             guard let strongSelf = self else { return }
             DispatchQueue.main.async {
-                guard strongSelf.isInForeground else { return }
+                guard strongSelf.canRunNetworking else { return }
                 guard strongSelf.isConnected else { return }
                 let elapsed = Date().timeIntervalSince(strongSelf.lastDataReceivedTime)
                 if elapsed > strongSelf.staleConnectionTimeout {
@@ -561,7 +570,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         stopStaleCheckTimer()
         staleMissCount = 0
         isServicesRunning = false
-        if autoReconnectEnabled && isInForeground {
+        if autoReconnectEnabled && canRunNetworking {
             pendingInvitePeers = []
             rebuildSession()
             startAllServices()
@@ -625,15 +634,27 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     func enterBackground() {
         isInForeground = false
         isEnteringForeground = false
+        let shouldKeepAlive = autoReconnectEnabled && currentRole == .receiver
+        backgroundNetworkingEnabled = BackgroundKeepAliveService.shared.setActive(shouldKeepAlive)
         if isConnected {
             let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: currentDeviceName)
             send(command: msg)
+        }
+        if backgroundNetworkingEnabled {
+            if isConnected {
+                startHeartbeat()
+            } else if autoReconnectEnabled {
+                scheduleReconnect()
+            }
+            return
         }
         cancelAllTimers()
     }
 
     func enterForeground() {
         isInForeground = true
+        backgroundNetworkingEnabled = false
+        BackgroundKeepAliveService.shared.stop()
         guard autoReconnectEnabled, currentRole != .unset else { return }
         guard !isEnteringForeground else {
             peerLog.info("LIFECYCLE-001 enterForeground already in progress, skipping")
@@ -720,7 +741,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             isServicesRunning = false
         }
         startAllServices()
-        if isConnected && isInForeground {
+        if isConnected && canRunNetworking {
             startHeartbeat()
         }
     }
@@ -767,7 +788,7 @@ extension PeerSession: MCSessionDelegate {
                     role: peerRole
                 )
                 self.connectionState = .connected(to: device)
-                if self.isInForeground {
+                if self.canRunNetworking {
                     self.startHeartbeat()
                 }
 
@@ -914,7 +935,7 @@ extension PeerSession: MCNearbyServiceAdvertiserDelegate {
         peerLog.error("ADV-001 Advertiser failed: \(String(describing: error), privacy: .public)")
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            if self.autoReconnectEnabled && self.isInForeground {
+            if self.autoReconnectEnabled && self.canRunNetworking {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
                     self?.startAdvertising()
                 }
@@ -964,11 +985,90 @@ extension PeerSession: MCNearbyServiceBrowserDelegate {
         peerLog.error("BRW-001 Browser failed: \(String(describing: error), privacy: .public)")
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            if self.autoReconnectEnabled && self.isInForeground {
+            if self.autoReconnectEnabled && self.canRunNetworking {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
                     self?.startBrowsing()
                 }
             }
         }
+    }
+}
+
+private let keepAliveLog = Logger(subsystem: "com.deskboard", category: "BackgroundKeepAlive")
+
+private final class BackgroundKeepAliveService: @unchecked Sendable {
+    static let shared = BackgroundKeepAliveService()
+
+    private var audioEngine: AVAudioEngine?
+    private var sourceNode: AVAudioSourceNode?
+    private(set) var isRunning: Bool = false
+
+    private init() {}
+
+    @discardableResult
+    func setActive(_ shouldRun: Bool) -> Bool {
+        if shouldRun {
+            return start()
+        }
+        stop()
+        return false
+    }
+
+    @discardableResult
+    func start() -> Bool {
+        guard !isRunning else { return true }
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setActive(true)
+
+            let engine = AVAudioEngine()
+            let format = engine.outputNode.inputFormat(forBus: 0)
+            let node = AVAudioSourceNode { _, _, _, audioBufferList -> OSStatus in
+                let buffers = UnsafeMutableAudioBufferListPointer(audioBufferList)
+                for buffer in buffers {
+                    if let data = buffer.mData {
+                        memset(data, 0, Int(buffer.mDataByteSize))
+                    }
+                }
+                return noErr
+            }
+
+            engine.attach(node)
+            engine.connect(node, to: engine.mainMixerNode, format: format)
+            engine.mainMixerNode.outputVolume = 0
+            try engine.start()
+
+            audioEngine = engine
+            sourceNode = node
+            isRunning = true
+            keepAliveLog.info("BGKA-001 Background keep-alive started")
+            return true
+        } catch {
+            keepAliveLog.error("BGKA-002 Failed to start keep-alive: \(String(describing: error), privacy: .public)")
+            stop()
+            return false
+        }
+    }
+
+    func stop() {
+        if let engine = audioEngine, engine.isRunning {
+            engine.stop()
+        }
+        audioEngine = nil
+        sourceNode = nil
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setActive(false, options: [.notifyOthersOnDeactivation])
+        } catch {
+            keepAliveLog.error("BGKA-003 Failed to deactivate audio session: \(String(describing: error), privacy: .public)")
+        }
+
+        if isRunning {
+            keepAliveLog.info("BGKA-004 Background keep-alive stopped")
+        }
+        isRunning = false
     }
 }
