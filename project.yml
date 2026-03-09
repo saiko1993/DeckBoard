@@ -49,7 +49,7 @@ targets:
       properties:
         CFBundleName: $(PRODUCT_NAME)
         CFBundleDisplayName: DeskBoard
-        CFBundleVersion: "13"
+        CFBundleVersion: "15"
         CFBundleShortVersionString: "1.0.0"
         CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
         UILaunchScreen:
