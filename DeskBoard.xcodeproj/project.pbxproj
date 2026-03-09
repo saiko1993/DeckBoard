@@ -745,7 +745,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.controls;
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq;
 				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -817,7 +817,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.controls;
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq;
 				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1035,7 +1035,7 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		7F38010FA77A196385A074B6 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess";
+			repositoryURL = https://github.com/kishikawakatsumi/KeychainAccess;
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 4.2.2;
