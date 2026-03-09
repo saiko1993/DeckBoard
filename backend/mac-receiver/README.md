@@ -38,6 +38,7 @@ In DeskBoard receiver app:
 ## Endpoints
 
 - `GET /health`
+- `GET /v1/capabilities`
 - `POST /v1/execute`
 
 Request body format:
@@ -61,7 +62,9 @@ Request body format:
 - `open_app`
 - `run_shortcut`, `run_script`
 - `keyboard_shortcut`
-- `toggle_dark_mode`, `screenshot`, `sleep_display`
+- `toggle_dark_mode`, `screenshot`, `screen_record`, `sleep_display`, `lock_screen`
+- `open_terminal`, `force_quit_app`, `empty_trash`, `toggle_dnd`
+- `presentation_next`, `presentation_previous`, `presentation_start`, `presentation_end`
 - `media_play`, `media_pause`, `media_play_pause`, `media_next`, `media_previous`, `media_volume_up`, `media_volume_down`, `media_mute`
 - `macro`
 

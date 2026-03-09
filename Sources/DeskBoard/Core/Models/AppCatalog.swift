@@ -126,6 +126,15 @@ nonisolated enum AppCatalog {
 
         AppShortcut(id: "figma", name: "Figma", urlScheme: "figma://", icon: "paintbrush.pointed.fill", colorHex: "#F24E1E", category: .developer),
         AppShortcut(id: "github_desktop", name: "GitHub Desktop", urlScheme: "x-github-client://", icon: "arrow.triangle.branch", colorHex: "#6E5494", category: .developer),
+        AppShortcut(id: "xcode", name: "Xcode", urlScheme: "xcode://", icon: "hammer.fill", colorHex: "#147EFB", category: .developer),
+        AppShortcut(id: "vscode", name: "Visual Studio Code", urlScheme: "vscode://", icon: "chevron.left.forwardslash.chevron.right", colorHex: "#007ACC", category: .developer),
+        AppShortcut(id: "finder", name: "Finder", urlScheme: "file://", icon: "folder.fill", colorHex: "#4A90E2", category: .utilities),
+        AppShortcut(id: "system_settings", name: "System Settings", urlScheme: "x-apple.systempreferences:", icon: "gearshape.fill", colorHex: "#636366", category: .utilities),
+        AppShortcut(id: "activity_monitor", name: "Activity Monitor", urlScheme: "activitymonitor://", icon: "waveform.path.ecg", colorHex: "#34C759", category: .utilities),
+        AppShortcut(id: "console", name: "Console", urlScheme: "console://", icon: "text.alignleft", colorHex: "#636366", category: .developer),
+        AppShortcut(id: "keynote", name: "Keynote", urlScheme: "keynote://", icon: "play.rectangle.fill", colorHex: "#007AFF", category: .productivity),
+        AppShortcut(id: "pages", name: "Pages", urlScheme: "pages://", icon: "doc.richtext.fill", colorHex: "#FF9500", category: .productivity),
+        AppShortcut(id: "numbers", name: "Numbers", urlScheme: "numbers://", icon: "tablecells.fill", colorHex: "#34C759", category: .productivity),
     ]
 
     static func apps(for category: AppCategory) -> [AppShortcut] {

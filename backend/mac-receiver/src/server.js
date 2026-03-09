@@ -20,6 +20,15 @@ const APP_NAME_BY_ID = {
   spotify: 'Spotify',
   figma: 'Figma',
   notion: 'Notion',
+  xcode: 'Xcode',
+  vscode: 'Visual Studio Code',
+  finder: 'Finder',
+  system_settings: 'System Settings',
+  activity_monitor: 'Activity Monitor',
+  console: 'Console',
+  keynote: 'Keynote',
+  pages: 'Pages',
+  numbers: 'Numbers',
   telegram: 'Telegram',
   whatsapp: 'WhatsApp'
 };
@@ -47,6 +56,37 @@ const MODIFIER_MAP = {
   ctrl: 'control down',
   control: 'control down'
 };
+
+const ACTION_CAPABILITIES = [
+  'open_url',
+  'open_deep_link',
+  'open_app',
+  'run_shortcut',
+  'run_script',
+  'keyboard_shortcut',
+  'toggle_dark_mode',
+  'screenshot',
+  'screen_record',
+  'sleep_display',
+  'lock_screen',
+  'open_terminal',
+  'force_quit_app',
+  'empty_trash',
+  'toggle_dnd',
+  'presentation_next',
+  'presentation_previous',
+  'presentation_start',
+  'presentation_end',
+  'media_play',
+  'media_pause',
+  'media_play_pause',
+  'media_next',
+  'media_previous',
+  'media_volume_up',
+  'media_volume_down',
+  'media_mute',
+  'macro'
+];
 
 function sendJSON(res, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -115,6 +155,14 @@ function runAppleScript(script) {
   return runFile('/usr/bin/osascript', ['-e', script]);
 }
 
+function runShortcutByName(name) {
+  const value = String(name || '').trim();
+  if (!value) {
+    throw new Error('Missing shortcut name');
+  }
+  return runFile('/usr/bin/shortcuts', ['run', value]);
+}
+
 function normalizeModifierList(modifiers) {
   if (!Array.isArray(modifiers)) {
     return [];
@@ -166,18 +214,70 @@ async function executeAction(action) {
         throw new Error('Missing appID');
       }
       const appName = APP_NAME_BY_ID[appID] || appID;
-      await runFile('/usr/bin/open', ['-a', appName]);
+      await runFile('/usr/bin/open', ['-a', appName]).catch(async () => {
+        await runFile('/usr/bin/open', [appID]);
+      });
       return { ok: true, detail: `Opened ${appName}` };
     }
 
     case 'run_shortcut':
     case 'run_script': {
       const shortcutName = String(action.value || '').trim();
-      if (!shortcutName) {
-        throw new Error('Missing shortcut name');
-      }
-      await runFile('/usr/bin/shortcuts', ['run', shortcutName]);
+      await runShortcutByName(shortcutName);
       return { ok: true, detail: `Ran shortcut ${shortcutName}` };
+    }
+
+    case 'open_terminal': {
+      await runFile('/usr/bin/open', ['-a', 'Terminal']);
+      return { ok: true, detail: 'Opened Terminal' };
+    }
+
+    case 'force_quit_app': {
+      const script = [
+        'tell application "System Events"',
+        'set frontApp to name of first application process whose frontmost is true',
+        'end tell',
+        'if frontApp is not "Finder" then',
+        'tell application frontApp to quit',
+        'end if'
+      ].join('\n');
+      await runAppleScript(script);
+      return { ok: true, detail: 'Quit front app' };
+    }
+
+    case 'empty_trash': {
+      await runAppleScript('tell application "Finder" to empty the trash');
+      return { ok: true, detail: 'Trash emptied' };
+    }
+
+    case 'toggle_dnd': {
+      await runShortcutByName('Toggle Do Not Disturb');
+      return { ok: true, detail: 'Toggled Do Not Disturb' };
+    }
+
+    case 'screen_record': {
+      await runShortcutByName('Toggle Screen Recording');
+      return { ok: true, detail: 'Toggled screen recording' };
+    }
+
+    case 'presentation_next': {
+      await runAppleScript('tell application "System Events" to key code 124');
+      return { ok: true, detail: 'Next slide' };
+    }
+
+    case 'presentation_previous': {
+      await runAppleScript('tell application "System Events" to key code 123');
+      return { ok: true, detail: 'Previous slide' };
+    }
+
+    case 'presentation_start': {
+      await runShortcutByName('Start Presentation');
+      return { ok: true, detail: 'Presentation started' };
+    }
+
+    case 'presentation_end': {
+      await runShortcutByName('End Presentation');
+      return { ok: true, detail: 'Presentation ended' };
     }
 
     case 'keyboard_shortcut': {
@@ -207,6 +307,11 @@ async function executeAction(action) {
     case 'sleep_display': {
       await runFile('/usr/bin/pmset', ['displaysleepnow']);
       return { ok: true, detail: 'Display sleep command sent' };
+    }
+
+    case 'lock_screen': {
+      await runAppleScript('tell application "System Events" to keystroke "q" using {control down, command down}');
+      return { ok: true, detail: 'Lock screen command sent' };
     }
 
     case 'media_play': {
@@ -307,6 +412,15 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && req.url === '/health') {
     sendJSON(res, 200, { ok: true, service: 'deskboard-mac-receiver' });
+    return;
+  }
+
+  if (req.method === 'GET' && req.url === '/v1/capabilities') {
+    sendJSON(res, 200, {
+      ok: true,
+      service: 'deskboard-mac-receiver',
+      capabilities: ACTION_CAPABILITIES
+    });
     return;
   }
 

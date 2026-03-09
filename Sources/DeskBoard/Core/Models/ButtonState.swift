@@ -3,13 +3,38 @@ import Foundation
 nonisolated enum ButtonExecutionState: Sendable {
     case idle
     case running
+    case queued(position: Int?)
     case success
     case failed(String)
     case cooldown(until: Date)
 
     var isExecuting: Bool {
-        if case .running = self { return true }
-        return false
+        switch self {
+        case .running, .queued:
+            return true
+        default:
+            return false
+        }
+    }
+
+    var badgeText: String? {
+        switch self {
+        case .running:
+            return "RUN"
+        case .queued(let position):
+            if let position {
+                return "Q\(max(position, 1))"
+            }
+            return "QUEUED"
+        case .success:
+            return "OK"
+        case .failed:
+            return "ERR"
+        case .cooldown:
+            return "CD"
+        case .idle:
+            return nil
+        }
     }
 }
 

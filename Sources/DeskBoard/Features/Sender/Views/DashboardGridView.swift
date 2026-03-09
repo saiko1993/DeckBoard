@@ -22,7 +22,11 @@ struct DashboardGridView: View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(page.buttons.sorted(by: { $0.position < $1.position })) { button in
-                    DeskButtonView(button: button, isEditMode: isEditMode) {
+                    DeskButtonView(
+                        button: button,
+                        isEditMode: isEditMode,
+                        executionState: viewModel.stateFor(button.id)
+                    ) {
                         handleButtonTap(button)
                     } onEdit: {
                         buttonToEdit = button

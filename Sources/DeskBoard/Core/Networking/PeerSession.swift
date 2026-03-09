@@ -933,6 +933,8 @@ extension PeerSession: MCSessionDelegate {
         switch message.type {
         case .action:
             receivedCommand = message
+        case .actionResult:
+            receivedCommand = message
         case .pairingRequest:
             break
         case .pairingApproval:

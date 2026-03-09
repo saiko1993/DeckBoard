@@ -3,6 +3,7 @@ import SwiftUI
 struct DeskButtonView: View {
     let button: DeskButton
     let isEditMode: Bool
+    let executionState: ButtonExecutionState
     let onTap: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
@@ -29,6 +30,20 @@ struct DeskButtonView: View {
         .overlay(alignment: .topTrailing) {
             if isEditMode {
                 editOverlay
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if let badge = executionState.badgeText, !isEditMode {
+                Text(badge)
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(stateBadgeColor)
+                    )
+                    .padding(8)
             }
         }
         .contextMenu {
@@ -87,7 +102,7 @@ struct DeskButtonView: View {
         .background(
             RoundedRectangle(cornerRadius: button.config.cornerRadius, style: .continuous)
                 .fill(button.color)
-                .shadow(color: button.color.opacity(0.4), radius: 6, y: 3)
+                .shadow(color: stateShadowColor, radius: 7, y: 3)
         )
     }
 
@@ -112,6 +127,38 @@ struct DeskButtonView: View {
             }
         }
         .padding(4)
+    }
+
+    private var stateBadgeColor: Color {
+        switch executionState {
+        case .running:
+            return .blue
+        case .queued:
+            return .orange
+        case .success:
+            return .green
+        case .failed:
+            return .red
+        case .cooldown:
+            return .secondary
+        case .idle:
+            return .clear
+        }
+    }
+
+    private var stateShadowColor: Color {
+        switch executionState {
+        case .success:
+            return Color.green.opacity(0.45)
+        case .failed:
+            return Color.red.opacity(0.45)
+        case .queued:
+            return Color.orange.opacity(0.45)
+        case .running:
+            return Color.blue.opacity(0.45)
+        case .idle, .cooldown:
+            return button.color.opacity(0.4)
+        }
     }
 
     @ViewBuilder

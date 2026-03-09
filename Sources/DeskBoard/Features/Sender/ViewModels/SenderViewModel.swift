@@ -13,6 +13,7 @@ final class SenderViewModel: ObservableObject {
     @Published var showButtonEditor = false
     @Published var editingButton: DeskButton?
     @Published var editingPage: DashboardPage?
+    @Published var buttonExecutionStates: [UUID: ButtonExecutionState] = [:]
 
     private let appState: AppState
     private var cancellables = Set<AnyCancellable>()
@@ -46,6 +47,10 @@ final class SenderViewModel: ObservableObject {
         appState.$connectionState
             .receive(on: DispatchQueue.main)
             .assign(to: &$connectionState)
+
+        appState.$senderButtonStates
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$buttonExecutionStates)
     }
 
     // MARK: - Dashboard Selection
@@ -65,6 +70,10 @@ final class SenderViewModel: ObservableObject {
     func tap(button: DeskButton) {
         guard button.isEnabled else { return }
         appState.send(action: button.action, button: button)
+    }
+
+    func stateFor(_ buttonID: UUID) -> ButtonExecutionState {
+        buttonExecutionStates[buttonID] ?? .idle
     }
 
     // MARK: - Dashboard CRUD

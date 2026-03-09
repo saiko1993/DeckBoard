@@ -74,6 +74,7 @@ For actions that iOS cannot execute while the receiver app is in background, Des
 
 - Configure in app: **Settings -> Mac Receiver Relay**
 - Included relay implementation: [`backend/mac-receiver/README.md`](/Users/ahmed/Downloads/DeckBoard/backend/mac-receiver/README.md)
+- Relay capability endpoint: `GET /v1/capabilities`
 
 ---
 
@@ -93,6 +94,7 @@ Notes:
 - DeskBoard now labels actions in editor with background support status.
 - Foreground-required actions are queued and auto-run when receiver returns to foreground.
 - If Mac Relay is enabled, blocked background actions are forwarded to macOS instead of being dropped.
+- Sender receives execution acknowledgements (`queued`, `success`, `failed`, `timeout`) and shows live button state.
 
 ---
 

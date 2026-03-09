@@ -7,7 +7,7 @@ enum SampleData {
     // MARK: - Sample Dashboards
 
     static var allDashboards: [Dashboard] {
-        [mediaControlDashboard, presentationDashboard, productivityDashboard, developerDashboard]
+        [mediaControlDashboard, presentationDashboard, productivityDashboard, developerDashboard, macAutomationDashboard]
     }
 
     static var mediaControlDashboard: Dashboard {
@@ -107,6 +107,50 @@ enum SampleData {
                         DeskButton(title: "Numbers",     icon: "tablecells.fill",     colorHex: "#34C759", action: .openApp(appID: "numbers"),           position: 6),
                         DeskButton(title: "Force Quit",  icon: "xmark.octagon.fill",      colorHex: "#FF3B30", action: .forceQuitApp,                        position: 7),
                         DeskButton(title: "Trash",       icon: "trash.fill",          colorHex: "#FF3B30", action: .emptyTrash,                          position: 8)
+                    ]
+                )
+            ]
+        )
+    }
+
+    static var macAutomationDashboard: Dashboard {
+        Dashboard(
+            id: UUID(uuidString: "11111111-0000-0000-0000-000000000005")!,
+            name: "Mac Automations",
+            icon: "desktopcomputer",
+            colorHex: "#0A84FF",
+            pages: [
+                DashboardPage(
+                    title: "Apps",
+                    buttons: [
+                        DeskButton(title: "Finder",   icon: "folder.fill",      colorHex: "#4A90E2", action: .openApp(appID: "finder"),           position: 0),
+                        DeskButton(title: "Xcode",    icon: "hammer.fill",      colorHex: "#147EFB", action: .openApp(appID: "xcode"),            position: 1),
+                        DeskButton(title: "VS Code",  icon: "chevron.left.forwardslash.chevron.right", colorHex: "#007ACC", action: .openApp(appID: "vscode"), position: 2),
+                        DeskButton(title: "Chrome",   icon: "globe",            colorHex: "#4285F4", action: .openApp(appID: "chrome"),           position: 3),
+                        DeskButton(title: "Notes",    icon: "note.text",        colorHex: "#FFD60A", action: .openApp(appID: "notes"),            position: 4),
+                        DeskButton(title: "Keynote",  icon: "play.rectangle.fill", colorHex: "#007AFF", action: .openApp(appID: "keynote"),      position: 5)
+                    ]
+                ),
+                DashboardPage(
+                    title: "System",
+                    buttons: [
+                        DeskButton(title: "Lock",       icon: "lock.fill",             colorHex: "#636366", action: .lockScreen,          position: 0),
+                        DeskButton(title: "Sleep",      icon: "display",               colorHex: "#636366", action: .sleepDisplay,        position: 1),
+                        DeskButton(title: "Screenshot", icon: "camera.viewfinder",     colorHex: "#FF3B30", action: .screenshot,          position: 2),
+                        DeskButton(title: "Record",     icon: "record.circle",         colorHex: "#FF2D55", action: .screenRecord,        position: 3),
+                        DeskButton(title: "DND",        icon: "moon.fill",             colorHex: "#AF52DE", action: .toggleDoNotDisturb,  position: 4),
+                        DeskButton(title: "Empty Trash",icon: "trash.fill",            colorHex: "#FF3B30", action: .emptyTrash,          position: 5)
+                    ]
+                ),
+                DashboardPage(
+                    title: "Workflow",
+                    buttons: [
+                        DeskButton(title: "Focus Mode", icon: "bolt.fill",             colorHex: "#0A84FF", action: .runShortcut(name: "Focus Mode"), position: 0),
+                        DeskButton(title: "Standup",    icon: "video.fill",            colorHex: "#34C759", action: .openURL(url: "https://meet.google.com"), position: 1),
+                        DeskButton(title: "Next Slide", icon: "arrow.right.circle.fill", colorHex: "#007AFF", action: .presentationNext, position: 2),
+                        DeskButton(title: "Prev Slide", icon: "arrow.left.circle.fill",  colorHex: "#636366", action: .presentationPrevious, position: 3),
+                        DeskButton(title: "Start Deck", icon: "play.rectangle.fill",   colorHex: "#34C759", action: .presentationStart,   position: 4),
+                        DeskButton(title: "End Deck",   icon: "stop.circle.fill",      colorHex: "#FF3B30", action: .presentationEnd,     position: 5)
                     ]
                 )
             ]

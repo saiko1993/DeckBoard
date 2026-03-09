@@ -61,6 +61,7 @@ private struct _SenderViewBody: View {
                   let page = viewModel.activePage {
             VStack(spacing: 0) {
                 ConnectionBanner(state: appState.connectionState)
+                SenderExecutionStrip(states: viewModel.buttonExecutionStates)
 
                 if dashboard.pages.count > 1 {
                     PagePickerView(dashboard: dashboard, selectedPage: viewModel.activePage) { page in
@@ -127,5 +128,64 @@ private struct _SenderViewBody: View {
                 Label("Dashboards", systemImage: "rectangle.grid.2x2.fill")
             }
         }
+    }
+}
+
+private struct SenderExecutionStrip: View {
+    let states: [UUID: ButtonExecutionState]
+
+    var body: some View {
+        if runningCount + queuedCount + failedCount > 0 {
+            HStack(spacing: 10) {
+                if runningCount > 0 {
+                    pill(icon: "arrow.triangle.2.circlepath", text: "\(runningCount) Running", color: .blue)
+                }
+                if queuedCount > 0 {
+                    pill(icon: "clock.badge", text: "\(queuedCount) Queued", color: .orange)
+                }
+                if failedCount > 0 {
+                    pill(icon: "exclamationmark.triangle.fill", text: "\(failedCount) Failed", color: .red)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+            .background(Color(.secondarySystemGroupedBackground))
+        }
+    }
+
+    private var runningCount: Int {
+        states.values.filter {
+            if case .running = $0 { return true }
+            return false
+        }.count
+    }
+
+    private var queuedCount: Int {
+        states.values.filter {
+            if case .queued = $0 { return true }
+            return false
+        }.count
+    }
+
+    private var failedCount: Int {
+        states.values.filter {
+            if case .failed = $0 { return true }
+            return false
+        }.count
+    }
+
+    private func pill(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption2.weight(.semibold))
+            Text(text)
+                .font(.caption.weight(.semibold))
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(color.opacity(0.14))
+        .clipShape(Capsule())
     }
 }

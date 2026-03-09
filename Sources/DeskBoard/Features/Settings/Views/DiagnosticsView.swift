@@ -73,6 +73,14 @@ struct DiagnosticsView: View {
                 InfoRow(label: "Mac Relay Enabled", value: AppConfiguration.backgroundRelayEnabled ? "Yes" : "No")
                 InfoRow(label: "Mac Relay URL", value: AppConfiguration.backgroundRelayURL.trimmed.isEmpty ? "Not set" : "Configured")
             }
+
+            if appState.deviceRole == .sender {
+                Section("Sender Execution") {
+                    InfoRow(label: "Running Buttons", value: "\(runningButtonCount)")
+                    InfoRow(label: "Queued Buttons", value: "\(queuedButtonCount)")
+                    InfoRow(label: "Failed Buttons", value: "\(failedButtonCount)")
+                }
+            }
         }
         .navigationTitle("Diagnostics")
         .navigationBarTitleDisplayMode(.inline)
@@ -92,6 +100,27 @@ struct DiagnosticsView: View {
         guard let value, !value.isEmpty else { return "Not registered" }
         if value.count <= 16 { return value }
         return "\(value.prefix(8))...\(value.suffix(8))"
+    }
+
+    private var runningButtonCount: Int {
+        appState.senderButtonStates.values.filter {
+            if case .running = $0 { return true }
+            return false
+        }.count
+    }
+
+    private var queuedButtonCount: Int {
+        appState.senderButtonStates.values.filter {
+            if case .queued = $0 { return true }
+            return false
+        }.count
+    }
+
+    private var failedButtonCount: Int {
+        appState.senderButtonStates.values.filter {
+            if case .failed = $0 { return true }
+            return false
+        }.count
     }
 }
 

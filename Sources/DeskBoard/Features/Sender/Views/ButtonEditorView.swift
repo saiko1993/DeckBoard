@@ -202,6 +202,15 @@ struct ButtonEditorView: View {
                     .foregroundStyle(.secondary)
             }
             .padding(.vertical, 2)
+            if viewModel.selectedAction.requiresForegroundOnIOSReceiver {
+                HStack(spacing: 8) {
+                    Image(systemName: "desktopcomputer.and.arrow.down")
+                        .foregroundStyle(.blue)
+                    Text("Tip: Enable Mac Receiver Relay for reliable background execution.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             if case .openURL = viewModel.selectedAction {
                 TextField("https://example.com", text: $viewModel.urlText)

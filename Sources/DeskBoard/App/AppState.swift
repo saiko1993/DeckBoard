@@ -22,6 +22,7 @@ final class AppState: ObservableObject {
     @Published var incomingPairingRequest: IncomingPairingRequest?
     @Published var lastReceivedCommand: CommandMessage?
     @Published private(set) var deferredCommandCount: Int = 0
+    @Published private(set) var senderButtonStates: [UUID: ButtonExecutionState] = [:]
 
     @Published var trustedDevices: [PairedDevice] = []
 
@@ -42,6 +43,8 @@ final class AppState: ObservableObject {
     private var configuredRole: DeviceRole = .unset
     private var configuredDeviceName: String = ""
     private var deferredForegroundActions: [DeferredAction] = []
+    private var pendingSentCommands: [UUID: PendingSentCommand] = [:]
+    private let stateLog = Logger(subsystem: "com.deskboard", category: "AppState")
 
     init(
         peerSession: PeerSession = .shared,
@@ -179,136 +182,428 @@ final class AppState: ObservableObject {
             payload: .buttonAction(action),
             senderID: deviceName
         )
+        pendingSentCommands[message.id] = PendingSentCommand(
+            commandID: message.id,
+            buttonID: button.id,
+            buttonTitle: button.title,
+            action: action,
+            sentAt: Date(),
+            timeoutAt: Date().addingTimeInterval(12)
+        )
+        senderButtonStates[button.id] = .running
         peerSession.send(command: message)
+        monitorPendingCommandTimeout(message.id)
     }
 
     private func handleReceivedCommand(_ command: CommandMessage) {
         lastReceivedCommand = command
-        if !silentReceiver, hapticEnabled {
-            HapticManager.shared.light()
-        }
-        guard case .buttonAction(let action) = command.payload else { return }
-        executeAction(action)
-    }
-
-    private func executeAction(_ action: ButtonAction, allowDeferral: Bool = true) {
-        if allowDeferral,
-           action.requiresForegroundOnIOSReceiver,
-           UIApplication.shared.applicationState != .active {
-            handleForegroundRequiredAction(action)
-            return
-        }
-
-        performActionImmediately(action)
-    }
-
-    private func performActionImmediately(_ action: ButtonAction) {
-        let media = MediaControlService.shared
-        switch action {
-        case .openURL(let url), .openDeepLink(let url):
-            guard let url = URL(string: url) else { return }
-            UIApplication.shared.open(url)
-        case .sendText(let text):
-            UIPasteboard.general.string = text
-        case .mediaVolumeUp:
-            media.volumeUp()
-        case .mediaVolumeDown:
-            media.volumeDown()
-        case .mediaMute:
-            media.mute()
-        case .mediaPlay:
-            media.mediaPlay()
-        case .mediaPause:
-            media.mediaPause()
-        case .mediaPlayPause:
-            media.mediaPlayPause()
-        case .mediaNext:
-            media.mediaNext()
-        case .mediaPrevious:
-            media.mediaPrevious()
-        case .brightnessUp:
-            media.brightnessUp()
-        case .brightnessDown:
-            media.brightnessDown()
-        case .openApp(let appID):
-            Task { _ = await media.openAppByID(appID) }
-        case .runShortcut(let name):
-            Task { _ = await media.runShortcut(name: name) }
-        case .runScript(let name):
-            Task { _ = await media.runScript(name: name) }
-        case .toggleDarkMode:
-            Task { _ = await media.toggleDarkMode() }
-        case .screenshot:
-            Task { _ = await media.takeScreenshot() }
-        case .screenRecord:
-            Task { _ = await media.toggleScreenRecord() }
-        case .toggleDoNotDisturb:
-            Task { _ = await media.toggleDoNotDisturb() }
-        case .sleepDisplay:
-            Task { _ = await media.sleepDisplay() }
-        case .presentationNext:
-            Task { _ = await media.runShortcut(name: "Next Slide") }
-        case .presentationPrevious:
-            Task { _ = await media.runShortcut(name: "Previous Slide") }
-        case .presentationStart:
-            Task { _ = await media.runShortcut(name: "Start Presentation") }
-        case .presentationEnd:
-            Task { _ = await media.runShortcut(name: "End Presentation") }
-        case .macro(let actions):
-            Task { @MainActor in
-                for macroAction in actions {
-                    executeAction(macroAction)
-                    try? await Task.sleep(for: .milliseconds(80))
-                }
+        switch command.payload {
+        case .buttonAction(let action):
+            guard deviceRole == .receiver else { return }
+            if !silentReceiver, hapticEnabled {
+                HapticManager.shared.light()
             }
-        case .lockScreen, .openTerminal, .forceQuitApp,
-             .emptyTrash, .keyboardShortcut, .none:
+            Task { @MainActor in
+                await processIncomingAction(commandID: command.id, action: action)
+            }
+
+        case .actionResult(let report):
+            guard deviceRole == .sender else { return }
+            handleActionExecutionReport(report)
+
+        default:
             break
         }
     }
 
-    private func handleForegroundRequiredAction(_ action: ButtonAction) {
-        Task {
-            let forwarded = await BackgroundCommandRelayService.shared.forward(
+    private func processIncomingAction(commandID: UUID, action: ButtonAction) async {
+        if action.requiresForegroundOnIOSReceiver,
+           UIApplication.shared.applicationState != .active {
+            let relayResult = await BackgroundCommandRelayService.shared.forward(
                 action: action,
                 sourceDeviceName: deviceName,
                 reason: "receiver_background_foreground_required"
             )
-            guard !forwarded else { return }
-            await MainActor.run {
-                enqueueDeferredForegroundAction(action)
-            }
-        }
-    }
 
-    private func enqueueDeferredForegroundAction(_ action: ButtonAction) {
-        if let last = deferredForegroundActions.last,
-           last.action == action,
-           Date().timeIntervalSince(last.queuedAt) < 0.75 {
+            if relayResult.success {
+                sendActionExecutionReport(
+                    commandID: commandID,
+                    status: .forwarded,
+                    detail: relayResult.detail ?? "Executed via Mac relay",
+                    target: "mac_relay"
+                )
+                return
+            }
+
+            let queuePosition = enqueueDeferredForegroundAction(commandID: commandID, action: action)
+            sendActionExecutionReport(
+                commandID: commandID,
+                status: .queued,
+                detail: "Queued until receiver returns to foreground",
+                target: "ios_receiver",
+                queuePosition: queuePosition
+            )
             return
         }
 
-        deferredForegroundActions.append(DeferredAction(action: action, queuedAt: Date()))
+        let result = await executeActionAndReturnResult(action)
+        if !result.isSuccess {
+            let relayFallback = await BackgroundCommandRelayService.shared.forward(
+                action: action,
+                sourceDeviceName: deviceName,
+                reason: "receiver_local_execution_failed"
+            )
+            if relayFallback.success {
+                sendActionExecutionReport(
+                    commandID: commandID,
+                    status: .forwarded,
+                    detail: relayFallback.detail ?? "Executed via Mac relay",
+                    target: "mac_relay"
+                )
+                return
+            }
+        }
+        let status: RemoteActionStatus = result.isSuccess ? .success : .failed
+        sendActionExecutionReport(
+            commandID: commandID,
+            status: status,
+            detail: result.displayText,
+            target: "ios_receiver"
+        )
+    }
+
+    private func executeActionAndReturnResult(_ action: ButtonAction) async -> ExecutionResult {
+        let media = MediaControlService.shared
+        switch action {
+        case .none:
+            return .success(detail: "No action")
+
+        case .openURL(let raw), .openDeepLink(let raw):
+            guard !raw.trimmed.isEmpty, let url = URL(string: raw) else {
+                return .failure(error: "Invalid URL")
+            }
+            let opened = await UIApplication.shared.open(url)
+            return opened ? .success(detail: "Opened URL") : .failure(error: "Could not open URL")
+
+        case .sendText(let text):
+            UIPasteboard.general.string = text
+            return .success(detail: "Copied to clipboard")
+
+        case .mediaVolumeUp:
+            media.volumeUp()
+            return .success(detail: "Volume up")
+
+        case .mediaVolumeDown:
+            media.volumeDown()
+            return .success(detail: "Volume down")
+
+        case .mediaMute:
+            media.mute()
+            return .success(detail: "Muted")
+
+        case .mediaPlay:
+            media.mediaPlay()
+            return .success(detail: "Play")
+
+        case .mediaPause:
+            media.mediaPause()
+            return .success(detail: "Pause")
+
+        case .mediaPlayPause:
+            media.mediaPlayPause()
+            return .success(detail: "Play/Pause")
+
+        case .mediaNext:
+            media.mediaNext()
+            return .success(detail: "Next")
+
+        case .mediaPrevious:
+            media.mediaPrevious()
+            return .success(detail: "Previous")
+
+        case .brightnessUp:
+            media.brightnessUp()
+            return .success(detail: "Brightness up")
+
+        case .brightnessDown:
+            media.brightnessDown()
+            return .success(detail: "Brightness down")
+
+        case .openApp(let appID):
+            let opened = await media.openAppByID(appID)
+            return opened ? .success(detail: "Opened app") : .failure(error: "App not installed")
+
+        case .runShortcut(let name):
+            let opened = await media.runShortcut(name: name)
+            return opened ? .success(detail: "Running shortcut") : .failure(error: "Could not run shortcut")
+
+        case .runScript(let name):
+            let opened = await media.runScript(name: name)
+            return opened ? .success(detail: "Running script") : .failure(error: "Could not run script")
+
+        case .toggleDarkMode:
+            let toggled = await media.toggleDarkMode()
+            return toggled ? .success(detail: "Dark mode toggled") : .failure(error: "Could not toggle")
+
+        case .screenshot:
+            let taken = await media.takeScreenshot()
+            return taken ? .success(detail: "Screenshot") : .failure(error: "Could not take screenshot")
+
+        case .screenRecord:
+            let toggled = await media.toggleScreenRecord()
+            return toggled ? .success(detail: "Screen recording toggled") : .failure(error: "Could not toggle")
+
+        case .toggleDoNotDisturb:
+            let toggled = await media.toggleDoNotDisturb()
+            return toggled ? .success(detail: "Do Not Disturb toggled") : .failure(error: "Could not toggle DND")
+
+        case .sleepDisplay:
+            let slept = await media.sleepDisplay()
+            return slept ? .success(detail: "Display sleeping") : .failure(error: "Could not sleep display")
+
+        case .openTerminal:
+            let opened = await media.openTerminal()
+            return opened ? .success(detail: "Opened Terminal") : .failure(error: "Could not open Terminal")
+
+        case .forceQuitApp:
+            let quit = await media.forceQuitFrontApp()
+            return quit ? .success(detail: "Force quit command sent") : .failure(error: "Could not force quit")
+
+        case .emptyTrash:
+            let emptied = await media.emptyTrash()
+            return emptied ? .success(detail: "Trash emptied") : .failure(error: "Could not empty trash")
+
+        case .presentationNext:
+            let opened = await media.runShortcut(name: "Next Slide")
+            return opened ? .success(detail: "Next slide") : .failure(error: "Shortcut failed")
+
+        case .presentationPrevious:
+            let opened = await media.runShortcut(name: "Previous Slide")
+            return opened ? .success(detail: "Previous slide") : .failure(error: "Shortcut failed")
+
+        case .presentationStart:
+            let opened = await media.runShortcut(name: "Start Presentation")
+            return opened ? .success(detail: "Start presentation") : .failure(error: "Shortcut failed")
+
+        case .presentationEnd:
+            let opened = await media.runShortcut(name: "End Presentation")
+            return opened ? .success(detail: "End presentation") : .failure(error: "Shortcut failed")
+
+        case .keyboardShortcut:
+            return .failure(error: "Keyboard shortcut is not supported on iOS receiver")
+
+        case .lockScreen:
+            return .failure(error: "Lock screen command is not supported on iOS receiver")
+
+        case .macro(let actions):
+            for (idx, nested) in actions.enumerated() {
+                let nestedResult = await executeActionAndReturnResult(nested)
+                if case .failure(let error) = nestedResult {
+                    return .failure(error: "Step \(idx + 1) failed: \(error)")
+                }
+            }
+            return .success(detail: "Macro completed")
+        }
+    }
+
+    private func enqueueDeferredForegroundAction(commandID: UUID, action: ButtonAction) -> Int {
+        if deferredForegroundActions.contains(where: { $0.commandID == commandID }) {
+            return deferredForegroundActions.firstIndex(where: { $0.commandID == commandID }).map { $0 + 1 } ?? 1
+        }
+
+        deferredForegroundActions.append(
+            DeferredAction(
+                commandID: commandID,
+                action: action,
+                queuedAt: Date()
+            )
+        )
         if deferredForegroundActions.count > 80 {
             deferredForegroundActions.removeFirst(deferredForegroundActions.count - 80)
         }
         deferredCommandCount = deferredForegroundActions.count
+        return deferredForegroundActions.count
     }
 
     private func flushDeferredForegroundActionsIfNeeded() {
         guard UIApplication.shared.applicationState == .active else { return }
         guard !deferredForegroundActions.isEmpty else { return }
 
-        let pendingActions = deferredForegroundActions.map(\.action)
+        let pendingActions = deferredForegroundActions
         deferredForegroundActions.removeAll()
         deferredCommandCount = 0
 
         Task { @MainActor in
-            for action in pendingActions {
-                executeAction(action, allowDeferral: false)
+            for deferred in pendingActions {
+                let result = await executeActionAndReturnResult(deferred.action)
+                var status: RemoteActionStatus = result.isSuccess ? .success : .failed
+                var detail = result.displayText
+                var target = "ios_receiver"
+
+                if !result.isSuccess {
+                    let relayFallback = await BackgroundCommandRelayService.shared.forward(
+                        action: deferred.action,
+                        sourceDeviceName: deviceName,
+                        reason: "deferred_execution_local_failed"
+                    )
+                    if relayFallback.success {
+                        status = .forwarded
+                        detail = relayFallback.detail ?? "Executed via Mac relay"
+                        target = "mac_relay"
+                    }
+                }
+
+                sendActionExecutionReport(
+                    commandID: deferred.commandID,
+                    status: status,
+                    detail: detail,
+                    target: target
+                )
                 try? await Task.sleep(for: .milliseconds(120))
             }
         }
+    }
+
+    private func sendActionExecutionReport(
+        commandID: UUID,
+        status: RemoteActionStatus,
+        detail: String?,
+        target: String,
+        queuePosition: Int? = nil
+    ) {
+        let report = ActionExecutionReport(
+            commandID: commandID,
+            status: status,
+            detail: detail,
+            target: target,
+            queuePosition: queuePosition
+        )
+        let message = CommandMessage(
+            type: .actionResult,
+            payload: .actionResult(report),
+            senderID: deviceName
+        )
+        peerSession.send(command: message)
+    }
+
+    private func handleActionExecutionReport(_ report: ActionExecutionReport) {
+        guard var pending = pendingSentCommands[report.commandID] else { return }
+
+        switch report.status {
+        case .received:
+            senderButtonStates[pending.buttonID] = .running
+            pending.timeoutAt = Date().addingTimeInterval(20)
+            pendingSentCommands[report.commandID] = pending
+
+        case .queued:
+            senderButtonStates[pending.buttonID] = .queued(position: report.queuePosition)
+            pending.timeoutAt = Date().addingTimeInterval(300)
+            pendingSentCommands[report.commandID] = pending
+
+        case .forwarded, .success:
+            senderButtonStates[pending.buttonID] = .success
+            pendingSentCommands.removeValue(forKey: report.commandID)
+            appendExecutionLog(for: pending, report: report)
+            scheduleSenderButtonStateReset(buttonID: pending.buttonID, expected: .success, delayMS: 1400)
+
+        case .failed:
+            senderButtonStates[pending.buttonID] = .failed(report.detail ?? "Execution failed")
+            pendingSentCommands.removeValue(forKey: report.commandID)
+            appendExecutionLog(for: pending, report: report)
+            scheduleSenderButtonStateReset(buttonID: pending.buttonID, expected: .failed(""), delayMS: 2200)
+
+        case .timeout:
+            senderButtonStates[pending.buttonID] = .failed("Timed out")
+            pendingSentCommands.removeValue(forKey: report.commandID)
+            appendExecutionLog(for: pending, report: report)
+            scheduleSenderButtonStateReset(buttonID: pending.buttonID, expected: .failed(""), delayMS: 2200)
+
+        case .cancelled:
+            senderButtonStates[pending.buttonID] = .failed("Cancelled")
+            pendingSentCommands.removeValue(forKey: report.commandID)
+            appendExecutionLog(for: pending, report: report)
+            scheduleSenderButtonStateReset(buttonID: pending.buttonID, expected: .failed(""), delayMS: 1600)
+        }
+    }
+
+    private func monitorPendingCommandTimeout(_ commandID: UUID) {
+        Task { @MainActor in
+            while let pending = pendingSentCommands[commandID] {
+                let remaining = pending.timeoutAt.timeIntervalSinceNow
+                if remaining <= 0 {
+                    pendingSentCommands.removeValue(forKey: commandID)
+                    senderButtonStates[pending.buttonID] = .failed("Timed out")
+
+                    let report = ActionExecutionReport(
+                        commandID: commandID,
+                        status: .timeout,
+                        detail: "No confirmation from receiver",
+                        target: "network"
+                    )
+                    appendExecutionLog(for: pending, report: report)
+                    scheduleSenderButtonStateReset(buttonID: pending.buttonID, expected: .failed(""), delayMS: 2400)
+                    stateLog.error("SEND-ACK-001 Command timeout commandID=\(commandID.uuidString, privacy: .public)")
+                    return
+                }
+
+                let interval = min(max(remaining, 0.5), 2.0)
+                try? await Task.sleep(for: .seconds(interval))
+            }
+        }
+    }
+
+    private func scheduleSenderButtonStateReset(buttonID: UUID, expected: ButtonExecutionState, delayMS: Int) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(delayMS))
+            guard let current = senderButtonStates[buttonID] else { return }
+            switch (current, expected) {
+            case (.success, .success):
+                senderButtonStates[buttonID] = .idle
+            case (.failed, .failed):
+                senderButtonStates[buttonID] = .idle
+            default:
+                break
+            }
+        }
+    }
+
+    private func appendExecutionLog(for pending: PendingSentCommand, report: ActionExecutionReport) {
+        let elapsed = Date().timeIntervalSince(pending.sentAt)
+        let result: ExecutionResult
+
+        switch report.status {
+        case .forwarded:
+            result = .success(detail: report.detail ?? "Forwarded to Mac relay")
+        case .success:
+            result = .success(detail: report.detail)
+        case .failed:
+            result = .failure(error: report.detail ?? "Execution failed")
+        case .timeout:
+            result = .timeout
+        case .cancelled:
+            result = .cancelled
+        case .queued, .received:
+            result = .pending
+        }
+
+        let targetName: String? = {
+            switch connectionState {
+            case .connected(let device):
+                return device.displayName
+            default:
+                return report.target
+            }
+        }()
+
+        let log = ExecutionLog(
+            buttonID: pending.buttonID,
+            buttonTitle: pending.buttonTitle,
+            action: pending.action,
+            result: result,
+            duration: elapsed,
+            targetDevice: targetName
+        )
+        ExecutionLogStore.shared.append(log)
     }
 
     func acceptPairing() {
@@ -360,13 +655,25 @@ final class AppState: ObservableObject {
     }
 
     func disconnect() {
+        pendingSentCommands.removeAll()
+        senderButtonStates.removeAll()
         peerSession.disconnect()
     }
 }
 
 private nonisolated struct DeferredAction: Sendable {
+    let commandID: UUID
     let action: ButtonAction
     let queuedAt: Date
+}
+
+private nonisolated struct PendingSentCommand: Sendable {
+    let commandID: UUID
+    let buttonID: UUID
+    let buttonTitle: String
+    let action: ButtonAction
+    let sentAt: Date
+    var timeoutAt: Date
 }
 
 nonisolated enum AppTheme: String, CaseIterable, Sendable {
@@ -404,12 +711,18 @@ actor BackgroundCommandRelayService {
         session = URLSession(configuration: config)
     }
 
-    func forward(action: ButtonAction, sourceDeviceName: String, reason: String) async -> Bool {
-        guard AppConfiguration.backgroundRelayEnabled else { return false }
-        guard let baseURL = AppConfiguration.backgroundRelayBaseURL else { return false }
+    func forward(action: ButtonAction, sourceDeviceName: String, reason: String) async -> RelayForwardResult {
+        guard AppConfiguration.backgroundRelayEnabled else {
+            return RelayForwardResult(success: false, detail: "Relay disabled")
+        }
+        guard let baseURL = AppConfiguration.backgroundRelayBaseURL else {
+            return RelayForwardResult(success: false, detail: "Relay URL missing")
+        }
 
         let relayAction = RelayActionPayload(action: action)
-        guard relayAction.kind != "none" else { return false }
+        guard relayAction.kind != "none" else {
+            return RelayForwardResult(success: false, detail: "No action")
+        }
 
         let body = RelayCommandRequest(
             sourceDeviceUUID: PeerSession.stableDeviceUUID,
@@ -428,17 +741,21 @@ actor BackgroundCommandRelayService {
             }
             request.httpBody = try JSONEncoder().encode(body)
 
-            let (_, response) = try await session.data(for: request)
-            guard let http = response as? HTTPURLResponse else { return false }
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                return RelayForwardResult(success: false, detail: "Invalid relay response")
+            }
+            let relayResponse = try? JSONDecoder().decode(RelayExecuteResponse.self, from: data)
+
             if (200...299).contains(http.statusCode) {
                 log.info("RELAY-001 Forwarded action=\(relayAction.kind, privacy: .public)")
-                return true
+                return RelayForwardResult(success: true, detail: relayResponse?.detail ?? "Executed via relay")
             }
             log.error("RELAY-002 Relay failed status=\(http.statusCode, privacy: .public)")
-            return false
+            return RelayForwardResult(success: false, detail: relayResponse?.error ?? "Relay status \(http.statusCode)")
         } catch {
             log.error("RELAY-003 Relay request failed: \(String(describing: error), privacy: .public)")
-            return false
+            return RelayForwardResult(success: false, detail: "Relay request failed")
         }
     }
 }
@@ -576,6 +893,17 @@ private nonisolated struct RelayCommandRequest: Codable, Sendable {
     let appVersion: String
     let reason: String
     let action: RelayActionPayload
+}
+
+private nonisolated struct RelayExecuteResponse: Codable, Sendable {
+    let ok: Bool
+    let detail: String?
+    let error: String?
+}
+
+nonisolated struct RelayForwardResult: Sendable {
+    let success: Bool
+    let detail: String?
 }
 
 private nonisolated struct RelayActionPayload: Codable, Sendable {

@@ -76,6 +76,33 @@ final class CommandMessageTests: XCTestCase {
         }
     }
 
+    func testActionResultRoundTrip() throws {
+        let payload = ActionExecutionReport(
+            commandID: UUID(),
+            status: .queued,
+            detail: "Queued until receiver returns to foreground",
+            target: "ios_receiver",
+            queuePosition: 3
+        )
+        let message = CommandMessage(
+            type: .actionResult,
+            payload: .actionResult(payload),
+            senderID: "receiver-device"
+        )
+        let data = try encoder.encode(message)
+        let decoded = try encoder.decode(data)
+
+        XCTAssertEqual(decoded.type, .actionResult)
+        if case .actionResult(let report) = decoded.payload {
+            XCTAssertEqual(report.commandID, payload.commandID)
+            XCTAssertEqual(report.status, .queued)
+            XCTAssertEqual(report.queuePosition, 3)
+            XCTAssertEqual(report.target, "ios_receiver")
+        } else {
+            XCTFail("Expected .actionResult payload")
+        }
+    }
+
     func testURLActionRoundTrip() throws {
         let url = "https://example.com/test"
         let message = CommandMessage(

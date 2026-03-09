@@ -37,10 +37,8 @@ final class ReceiverViewModel: ObservableObject {
     }
 
     private func handleCommand(_ command: CommandMessage) {
-        // Check if this action category is allowed
-        if case .buttonAction(let action) = command.payload {
-            guard allowedActions.contains(action.category) else { return }
-        }
+        guard case .buttonAction(let action) = command.payload else { return }
+        guard allowedActions.contains(action.category) else { return }
         lastCommand = command
         commandHistory.insert(command, at: 0)
         if commandHistory.count > 50 {

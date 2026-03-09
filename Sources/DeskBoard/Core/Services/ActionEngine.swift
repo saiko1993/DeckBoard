@@ -170,15 +170,27 @@ final class ActionEngine: ObservableObject {
             media.mediaPrevious()
             return .success(detail: "Previous Track")
 
-        case .presentationNext, .presentationPrevious,
-             .presentationStart, .presentationEnd:
-            return .success(detail: "Presentation command sent")
+        case .presentationNext:
+            let opened = await media.runShortcut(name: "Next Slide")
+            return opened ? .success(detail: "Next slide") : .failure(error: "Could not run shortcut")
+
+        case .presentationPrevious:
+            let opened = await media.runShortcut(name: "Previous Slide")
+            return opened ? .success(detail: "Previous slide") : .failure(error: "Could not run shortcut")
+
+        case .presentationStart:
+            let opened = await media.runShortcut(name: "Start Presentation")
+            return opened ? .success(detail: "Start presentation") : .failure(error: "Could not run shortcut")
+
+        case .presentationEnd:
+            let opened = await media.runShortcut(name: "End Presentation")
+            return opened ? .success(detail: "End presentation") : .failure(error: "Could not run shortcut")
 
         case .keyboardShortcut(let modifiers, let key):
-            return .success(detail: "Shortcut: \(modifiers.joined(separator: "+"))+\(key)")
+            return .failure(error: "Keyboard shortcut is not supported on iOS receiver (\(modifiers.joined(separator: "+"))+\(key))")
 
         case .lockScreen:
-            return .success(detail: "Lock command sent")
+            return .failure(error: "Lock screen is not supported on iOS receiver")
 
         case .openTerminal:
             let opened = await media.openTerminal()
