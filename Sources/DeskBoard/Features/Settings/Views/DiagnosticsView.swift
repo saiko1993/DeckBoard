@@ -60,6 +60,13 @@ struct DiagnosticsView: View {
                 InfoRow(label: "iOS", value: UIDevice.current.systemVersion)
                 InfoRow(label: "Model", value: UIDevice.current.model)
             }
+
+            Section("Push Wake") {
+                InfoRow(label: "Enabled", value: AppConfiguration.pushWakeEnabled ? "Yes" : "No")
+                InfoRow(label: "Gateway", value: AppConfiguration.pushGatewayURL.trimmed.isEmpty ? "Not set" : "Configured")
+                InfoRow(label: "APNs Token", value: shortToken(AppConfiguration.pushToken))
+                InfoRow(label: "Device UUID", value: PeerSession.stableDeviceUUID)
+            }
         }
         .navigationTitle("Diagnostics")
         .navigationBarTitleDisplayMode(.inline)
@@ -73,6 +80,12 @@ struct DiagnosticsView: View {
             testResult = reachable ? "✓ Reachable" : "✗ Unreachable"
             isTesting = false
         }
+    }
+
+    private func shortToken(_ value: String?) -> String {
+        guard let value, !value.isEmpty else { return "Not registered" }
+        if value.count <= 16 { return value }
+        return "\(value.prefix(8))...\(value.suffix(8))"
     }
 }
 

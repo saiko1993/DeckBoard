@@ -153,6 +153,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         lastConnectedPeerUUID = cached.uuid
         lastConnectedPeerName = cached.name
         rebuildSession()
+        registerForPushWake()
     }
 
     private func rebuildSession() {
@@ -492,6 +493,9 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         reconnectAttempts += 1
         isReconnecting = false
         pruneExpiredPendingInvites()
+        if reconnectAttempts % 6 == 0 {
+            requestWakeForLastPeer(reason: "reconnect_attempt_\(reconnectAttempts)")
+        }
 
         if reconnectAttempts % 10 == 0 {
             rebuildSession()
@@ -606,6 +610,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         staleMissCount = 0
         isServicesRunning = false
         pruneExpiredPendingInvites()
+        requestWakeForLastPeer(reason: "connection_lost")
         if autoReconnectEnabled && canRunNetworking {
             pendingInvitePeers = []
             pendingInviteTimestamps = [:]
@@ -681,6 +686,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             if isConnected {
                 startHeartbeat()
             } else if autoReconnectEnabled {
+                requestWakeForLastPeer(reason: "entered_background")
                 scheduleReconnect()
             }
             return
@@ -700,6 +706,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         isEnteringForeground = true
 
         lastDataReceivedTime = Date()
+        registerForPushWake()
 
         if !isConnected {
             reconnectAttempts = 0
@@ -781,6 +788,7 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             isServicesRunning = false
         }
         startAllServices()
+        registerForPushWake()
         if isConnected && canRunNetworking {
             startHeartbeat()
         }
@@ -812,6 +820,24 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             now.timeIntervalSince(startedAt) >= inviteRetryCooldown ? key : nil
         }
         clearPendingInvite(keys: expired)
+    }
+
+    private func registerForPushWake() {
+        guard currentRole != .unset else { return }
+        let role = currentRole
+        let deviceName = currentDeviceName
+        guard !deviceName.isEmpty else { return }
+        Task {
+            await PushWakeService.shared.registerCurrentDevice(role: role, deviceName: deviceName)
+        }
+    }
+
+    private func requestWakeForLastPeer(reason: String) {
+        guard autoReconnectEnabled else { return }
+        guard let targetUUID = lastConnectedPeerUUID, !targetUUID.isEmpty else { return }
+        Task {
+            await PushWakeService.shared.wakePeer(targetDeviceUUID: targetUUID, reason: reason)
+        }
     }
 }
 
@@ -852,6 +878,7 @@ extension PeerSession: MCSessionDelegate {
                 if self.canRunNetworking {
                     self.startHeartbeat()
                 }
+                self.registerForPushWake()
 
                 TrustedDeviceStore.shared.updateLastSeen(primaryID: peerUUID, fallbackID: peerName)
 

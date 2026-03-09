@@ -1,0 +1,7 @@
+name = "deskboard-push-gateway"
+main = "src/worker.js"
+compatibility_date = "2026-03-09"
+
+kv_namespaces = [
+  { binding = "DEVICE_STORE", id = "REPLACE_WITH_KV_NAMESPACE_ID" }
+]

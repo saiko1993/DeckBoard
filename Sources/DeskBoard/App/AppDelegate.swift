@@ -50,6 +50,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         let token = deviceToken.map { String(format: "%02x", $0) }.joined()
         AppConfiguration.pushToken = token
         Self.appLog.info("PUSH-001 Registered APNs token")
+        Task {
+            await PushWakeService.shared.registerCurrentDevice(
+                role: AppConfiguration.deviceRole,
+                deviceName: AppConfiguration.deviceName
+            )
+        }
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
@@ -62,6 +68,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         didReceiveRemoteNotification userInfo: [AnyHashable: Any],
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
+        guard let deskboard = userInfo["deskboard"] as? [String: Any],
+              (deskboard["kind"] as? String) == "wake" else {
+            completionHandler(.noData)
+            return
+        }
+
         let session = PeerSession.shared
         guard AppConfiguration.autoReconnect else {
             completionHandler(.noData)

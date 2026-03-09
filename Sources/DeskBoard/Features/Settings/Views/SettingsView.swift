@@ -80,6 +80,44 @@ private struct _SettingsViewBody: View {
                     }
                 }
 
+                Section("Background Wake") {
+                    Toggle(isOn: Binding(
+                        get: { viewModel.pushWakeEnabled },
+                        set: { viewModel.savePushWakeEnabled($0) }
+                    )) {
+                        Label("Enable Silent Push Wake", systemImage: "bell.badge")
+                    }
+
+                    HStack {
+                        Label("Gateway URL", systemImage: "network")
+                        Spacer()
+                        TextField("https://your-worker.workers.dev", text: $viewModel.pushGatewayURL)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .foregroundStyle(.secondary)
+                            .onSubmit { viewModel.savePushGatewayURL() }
+                    }
+
+                    HStack {
+                        Label("Gateway API Key", systemImage: "key.horizontal")
+                        Spacer()
+                        SecureField("Optional", text: $viewModel.pushGatewayAPIKey)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .foregroundStyle(.secondary)
+                            .onSubmit { viewModel.savePushGatewayAPIKey() }
+                    }
+
+                    Button {
+                        viewModel.savePushGatewayURL()
+                        viewModel.savePushGatewayAPIKey()
+                    } label: {
+                        Label("Save Wake Settings", systemImage: "square.and.arrow.down")
+                    }
+                }
+
                 Section("Dashboards") {
                     ForEach(appState.dashboards) { dashboard in
                         HStack {

@@ -11,6 +11,9 @@ final class SettingsViewModel: ObservableObject {
     @Published var hapticEnabled: Bool = AppConfiguration.hapticEnabled
     @Published var silentReceiver: Bool = AppConfiguration.silentReceiver
     @Published var autoReconnect: Bool = AppConfiguration.autoReconnect
+    @Published var pushWakeEnabled: Bool = AppConfiguration.pushWakeEnabled
+    @Published var pushGatewayURL: String = AppConfiguration.pushGatewayURL
+    @Published var pushGatewayAPIKey: String = AppConfiguration.pushGatewayAPIKey ?? ""
     @Published var trustedDevices: [PairedDevice] = []
     @Published var showRoleChange = false
     @Published var showExportPicker = false
@@ -62,6 +65,25 @@ final class SettingsViewModel: ObservableObject {
     func saveAutoReconnect(_ enabled: Bool) {
         autoReconnect = enabled
         appState.setAutoReconnect(enabled)
+    }
+
+    func savePushWakeEnabled(_ enabled: Bool) {
+        pushWakeEnabled = enabled
+        AppConfiguration.pushWakeEnabled = enabled
+        syncPushRegistration()
+    }
+
+    func savePushGatewayURL() {
+        AppConfiguration.pushGatewayURL = pushGatewayURL.trimmed
+        pushGatewayURL = AppConfiguration.pushGatewayURL
+        syncPushRegistration()
+    }
+
+    func savePushGatewayAPIKey() {
+        let trimmed = pushGatewayAPIKey.trimmed
+        AppConfiguration.pushGatewayAPIKey = trimmed.isEmpty ? nil : trimmed
+        pushGatewayAPIKey = AppConfiguration.pushGatewayAPIKey ?? ""
+        syncPushRegistration()
     }
 
     func changeRole(_ role: DeviceRole) {
@@ -137,5 +159,13 @@ final class SettingsViewModel: ObservableObject {
     func resetAllDashboards() {
         DashboardStore.shared.reset()
         appState.dashboards = SampleData.allDashboards
+    }
+
+    private func syncPushRegistration() {
+        let role = appState.deviceRole
+        let name = appState.deviceName
+        Task {
+            await PushWakeService.shared.registerCurrentDevice(role: role, deviceName: name)
+        }
     }
 }

@@ -128,10 +128,12 @@ targets:
       configs:
         Debug:
           CODE_SIGN_IDENTITY: iPhone Developer
+          APS_ENVIRONMENT: development
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
           SWIFT_OPTIMIZATION_LEVEL: "-Onone"
         Release:
           CODE_SIGN_IDENTITY: iPhone Distribution
+          APS_ENVIRONMENT: production
           SWIFT_OPTIMIZATION_LEVEL: "-Osize"
           VALIDATE_PRODUCT: true
 

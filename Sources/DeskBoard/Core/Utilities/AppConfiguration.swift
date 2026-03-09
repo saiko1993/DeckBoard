@@ -19,6 +19,9 @@ enum AppConfiguration {
         static let autoReconnect = "com.deskboard.autoReconnect"
         static let defaultColumns = "com.deskboard.defaultColumns"
         static let pushToken = "com.deskboard.pushToken"
+        static let pushWakeEnabled = "com.deskboard.pushWakeEnabled"
+        static let pushGatewayURL = "com.deskboard.pushGatewayURL"
+        static let pushGatewayAPIKey = "com.deskboard.pushGatewayAPIKey"
     }
 
     // MARK: - Defaults
@@ -65,6 +68,27 @@ enum AppConfiguration {
     static var pushToken: String? {
         get { UserDefaults.standard.string(forKey: Keys.pushToken) }
         set { UserDefaults.standard.set(newValue, forKey: Keys.pushToken) }
+    }
+
+    static var pushWakeEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: Keys.pushWakeEnabled) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.pushWakeEnabled) }
+    }
+
+    static var pushGatewayURL: String {
+        get { UserDefaults.standard.string(forKey: Keys.pushGatewayURL) ?? "" }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.pushGatewayURL) }
+    }
+
+    static var pushGatewayAPIKey: String? {
+        get { UserDefaults.standard.string(forKey: Keys.pushGatewayAPIKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.pushGatewayAPIKey) }
+    }
+
+    static var pushGatewayBaseURL: URL? {
+        let trimmed = pushGatewayURL.trimmed
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed)
     }
 }
 

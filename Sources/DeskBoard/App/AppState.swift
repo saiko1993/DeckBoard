@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import SwiftUI
 import UIKit
+import os.log
 
 @MainActor
 final class AppState: ObservableObject {
@@ -56,6 +57,7 @@ final class AppState: ObservableObject {
         loadInitialData()
         bindPeerSession()
         peerSession.setAutoReconnectEnabled(AppConfiguration.autoReconnect)
+        syncPushRegistration()
     }
 
     private func loadInitialData() {
@@ -119,6 +121,7 @@ final class AppState: ObservableObject {
         isOnboardingDone = true
         AppConfiguration.isOnboardingDone = true
         configurePeerSession(forceRebuild: true)
+        syncPushRegistration()
     }
 
     private var needsSessionRebuild: Bool {
@@ -135,6 +138,7 @@ final class AppState: ObservableObject {
             peerSession.configure(deviceName: deviceName, role: deviceRole)
         }
         peerSession.startAllServices()
+        syncPushRegistration()
     }
 
     func saveDashboards() {
@@ -277,6 +281,14 @@ final class AppState: ObservableObject {
         }
     }
 
+    private func syncPushRegistration() {
+        let role = deviceRole
+        let name = deviceName
+        Task {
+            await PushWakeService.shared.registerCurrentDevice(role: role, deviceName: name)
+        }
+    }
+
     func disconnect() {
         peerSession.disconnect()
     }
@@ -302,4 +314,131 @@ nonisolated enum AppTheme: String, CaseIterable, Sendable {
         case .dark:   return .dark
         }
     }
+}
+
+actor PushWakeService {
+    static let shared = PushWakeService()
+
+    private let session: URLSession
+    private let log = Logger(subsystem: "com.deskboard", category: "PushWakeService")
+
+    private var lastRegistrationSignature: String?
+    private var lastWakeAtByTarget: [String: Date] = [:]
+    private let registrationDebounce: TimeInterval = 30
+    private let wakeThrottle: TimeInterval = 12
+    private var lastRegistrationAt: Date?
+
+    private init() {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 10
+        config.timeoutIntervalForResource = 20
+        session = URLSession(configuration: config)
+    }
+
+    func registerCurrentDevice(role: DeviceRole, deviceName: String) async {
+        guard AppConfiguration.pushWakeEnabled else { return }
+        guard role != .unset else { return }
+        guard let baseURL = AppConfiguration.pushGatewayBaseURL else { return }
+        guard let apnsToken = AppConfiguration.pushToken?.trimmed, !apnsToken.isEmpty else { return }
+
+        let payload = RegisterPayload(
+            deviceUUID: PeerSession.stableDeviceUUID,
+            pairingToken: PeerSession.pairingToken,
+            apnsToken: apnsToken,
+            role: role.rawValue,
+            deviceName: deviceName.trimmed,
+            appVersion: AppConfiguration.appVersion
+        )
+
+        let signature = [
+            payload.deviceUUID,
+            payload.apnsToken,
+            payload.role,
+            payload.deviceName,
+            payload.appVersion
+        ].joined(separator: "|")
+
+        if signature == lastRegistrationSignature,
+           let lastRegistrationAt,
+           Date().timeIntervalSince(lastRegistrationAt) < registrationDebounce {
+            return
+        }
+
+        do {
+            let url = baseURL.appendingPathComponent("v1/register")
+            let response = try await postJSON(url: url, body: payload)
+            if (200...299).contains(response.statusCode) {
+                lastRegistrationSignature = signature
+                lastRegistrationAt = Date()
+                log.info("PUSHWAKE-001 Device registration succeeded")
+                return
+            }
+            log.error("PUSHWAKE-002 Registration failed status=\(response.statusCode, privacy: .public)")
+        } catch {
+            log.error("PUSHWAKE-003 Registration request failed: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    func wakePeer(targetDeviceUUID: String, reason: String) async {
+        guard AppConfiguration.pushWakeEnabled else { return }
+        guard let baseURL = AppConfiguration.pushGatewayBaseURL else { return }
+        guard !targetDeviceUUID.trimmed.isEmpty else { return }
+
+        let key = targetDeviceUUID.trimmed
+        if let last = lastWakeAtByTarget[key], Date().timeIntervalSince(last) < wakeThrottle {
+            return
+        }
+        lastWakeAtByTarget[key] = Date()
+
+        let payload = WakePayload(
+            fromDeviceUUID: PeerSession.stableDeviceUUID,
+            fromPairingToken: PeerSession.pairingToken,
+            targetDeviceUUID: key,
+            reason: reason
+        )
+
+        do {
+            let url = baseURL.appendingPathComponent("v1/wake")
+            let response = try await postJSON(url: url, body: payload)
+            if (200...299).contains(response.statusCode) {
+                log.info("PUSHWAKE-004 Wake request succeeded for target=\(key, privacy: .public)")
+                return
+            }
+            log.error("PUSHWAKE-005 Wake request failed status=\(response.statusCode, privacy: .public)")
+        } catch {
+            log.error("PUSHWAKE-006 Wake request failed: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    private func postJSON<T: Encodable>(url: URL, body: T) async throws -> HTTPURLResponse {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let apiKey = AppConfiguration.pushGatewayAPIKey?.trimmed, !apiKey.isEmpty {
+            request.setValue(apiKey, forHTTPHeaderField: "x-deskboard-key")
+        }
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (_, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        return httpResponse
+    }
+}
+
+private nonisolated struct RegisterPayload: Codable, Sendable {
+    let deviceUUID: String
+    let pairingToken: String
+    let apnsToken: String
+    let role: String
+    let deviceName: String
+    let appVersion: String
+}
+
+private nonisolated struct WakePayload: Codable, Sendable {
+    let fromDeviceUUID: String
+    let fromPairingToken: String
+    let targetDeviceUUID: String
+    let reason: String
 }

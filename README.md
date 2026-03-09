@@ -60,6 +60,14 @@ DeskBoard uses **MultipeerConnectivity** (Apple's peer-to-peer framework) for lo
 - Encrypted sessions (`MCEncryptionRequired`)
 - No internet or cloud required
 
+### Background Wake (Optional but Recommended)
+
+For stronger reconnection while apps are in background / screen locked, DeskBoard supports APNs silent wake:
+
+- Each device registers its APNs token + stable UUID to a push gateway
+- On disconnect, the paired device can trigger `silent push` to wake and reconnect
+- Included worker implementation: [`backend/push-gateway/README.md`](/Users/ahmed/Downloads/DeckBoard/backend/push-gateway/README.md)
+
 ---
 
 ## ⚡ Supported Actions
