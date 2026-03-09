@@ -202,6 +202,32 @@ extension ButtonAction {
         }
     }
 
+    var requiresForegroundOnIOSReceiver: Bool {
+        switch self {
+        case .none, .sendText,
+             .mediaPlay, .mediaPause, .mediaPlayPause, .mediaNext, .mediaPrevious,
+             .mediaVolumeUp, .mediaVolumeDown, .mediaMute,
+             .brightnessUp, .brightnessDown:
+            return false
+
+        case .openURL, .openDeepLink, .openApp, .runShortcut,
+             .presentationNext, .presentationPrevious, .presentationStart, .presentationEnd,
+             .keyboardShortcut, .lockScreen, .openTerminal, .runScript,
+             .toggleDarkMode, .screenshot, .screenRecord,
+             .forceQuitApp, .emptyTrash, .toggleDoNotDisturb, .sleepDisplay:
+            return true
+
+        case .macro(let actions):
+            return actions.contains { $0.requiresForegroundOnIOSReceiver }
+        }
+    }
+
+    var backgroundExecutionHint: String {
+        requiresForegroundOnIOSReceiver
+            ? "Needs receiver app in foreground on iOS"
+            : "Can run while receiver stays in background"
+    }
+
     var colorHex: String? {
         if case .openApp(let appID) = self {
             return AppCatalog.app(withID: appID)?.colorHex

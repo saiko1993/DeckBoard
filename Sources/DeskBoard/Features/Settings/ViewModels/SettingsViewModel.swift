@@ -14,6 +14,9 @@ final class SettingsViewModel: ObservableObject {
     @Published var pushWakeEnabled: Bool = AppConfiguration.pushWakeEnabled
     @Published var pushGatewayURL: String = AppConfiguration.pushGatewayURL
     @Published var pushGatewayAPIKey: String = AppConfiguration.pushGatewayAPIKey ?? ""
+    @Published var backgroundRelayEnabled: Bool = AppConfiguration.backgroundRelayEnabled
+    @Published var backgroundRelayURL: String = AppConfiguration.backgroundRelayURL
+    @Published var backgroundRelayAPIKey: String = AppConfiguration.backgroundRelayAPIKey ?? ""
     @Published var trustedDevices: [PairedDevice] = []
     @Published var showRoleChange = false
     @Published var showExportPicker = false
@@ -84,6 +87,22 @@ final class SettingsViewModel: ObservableObject {
         AppConfiguration.pushGatewayAPIKey = trimmed.isEmpty ? nil : trimmed
         pushGatewayAPIKey = AppConfiguration.pushGatewayAPIKey ?? ""
         syncPushRegistration()
+    }
+
+    func saveBackgroundRelayEnabled(_ enabled: Bool) {
+        backgroundRelayEnabled = enabled
+        AppConfiguration.backgroundRelayEnabled = enabled
+    }
+
+    func saveBackgroundRelayURL() {
+        AppConfiguration.backgroundRelayURL = backgroundRelayURL.trimmed
+        backgroundRelayURL = AppConfiguration.backgroundRelayURL
+    }
+
+    func saveBackgroundRelayAPIKey() {
+        let trimmed = backgroundRelayAPIKey.trimmed
+        AppConfiguration.backgroundRelayAPIKey = trimmed.isEmpty ? nil : trimmed
+        backgroundRelayAPIKey = AppConfiguration.backgroundRelayAPIKey ?? ""
     }
 
     func changeRole(_ role: DeviceRole) {

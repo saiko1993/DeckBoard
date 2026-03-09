@@ -1,0 +1,10 @@
+{
+  "name": "deskboard-mac-receiver",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LAN relay receiver for DeskBoard commands on macOS",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  }
+}

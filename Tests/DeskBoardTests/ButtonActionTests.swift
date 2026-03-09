@@ -104,6 +104,28 @@ final class ButtonActionTests: XCTestCase {
         XCTAssertFalse(ButtonAction.allSimpleActions.isEmpty)
     }
 
+    // MARK: - Background Capability
+
+    func testBackgroundSafeActions() {
+        XCTAssertFalse(ButtonAction.mediaPlay.requiresForegroundOnIOSReceiver)
+        XCTAssertFalse(ButtonAction.mediaVolumeUp.requiresForegroundOnIOSReceiver)
+        XCTAssertFalse(ButtonAction.sendText(text: "x").requiresForegroundOnIOSReceiver)
+    }
+
+    func testForegroundRequiredActions() {
+        XCTAssertTrue(ButtonAction.openURL(url: "https://apple.com").requiresForegroundOnIOSReceiver)
+        XCTAssertTrue(ButtonAction.openApp(appID: "youtube").requiresForegroundOnIOSReceiver)
+        XCTAssertTrue(ButtonAction.runShortcut(name: "Test").requiresForegroundOnIOSReceiver)
+    }
+
+    func testMacroForegroundRequirementPropagation() {
+        let safeMacro = ButtonAction.macro(actions: [.mediaPlay, .mediaNext])
+        XCTAssertFalse(safeMacro.requiresForegroundOnIOSReceiver)
+
+        let mixedMacro = ButtonAction.macro(actions: [.mediaPlay, .openApp(appID: "youtube")])
+        XCTAssertTrue(mixedMacro.requiresForegroundOnIOSReceiver)
+    }
+
     // MARK: - PairedDevice
 
     func testPairedDeviceCodable() throws {

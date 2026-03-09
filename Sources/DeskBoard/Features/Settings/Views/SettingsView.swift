@@ -118,6 +118,44 @@ private struct _SettingsViewBody: View {
                     }
                 }
 
+                Section("Mac Receiver Relay") {
+                    Toggle(isOn: Binding(
+                        get: { viewModel.backgroundRelayEnabled },
+                        set: { viewModel.saveBackgroundRelayEnabled($0) }
+                    )) {
+                        Label("Forward blocked background actions", systemImage: "desktopcomputer.and.arrow.down")
+                    }
+
+                    HStack {
+                        Label("Relay URL", systemImage: "network")
+                        Spacer()
+                        TextField("http://192.168.1.20:7788", text: $viewModel.backgroundRelayURL)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .foregroundStyle(.secondary)
+                            .onSubmit { viewModel.saveBackgroundRelayURL() }
+                    }
+
+                    HStack {
+                        Label("Relay API Key", systemImage: "key.horizontal")
+                        Spacer()
+                        SecureField("Optional", text: $viewModel.backgroundRelayAPIKey)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .foregroundStyle(.secondary)
+                            .onSubmit { viewModel.saveBackgroundRelayAPIKey() }
+                    }
+
+                    Button {
+                        viewModel.saveBackgroundRelayURL()
+                        viewModel.saveBackgroundRelayAPIKey()
+                    } label: {
+                        Label("Save Relay Settings", systemImage: "square.and.arrow.down")
+                    }
+                }
+
                 Section("Dashboards") {
                     ForEach(appState.dashboards) { dashboard in
                         HStack {

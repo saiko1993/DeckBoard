@@ -68,17 +68,31 @@ For stronger reconnection while apps are in background / screen locked, DeskBoar
 - On disconnect, the paired device can trigger `silent push` to wake and reconnect
 - Included worker implementation: [`backend/push-gateway/README.md`](/Users/ahmed/Downloads/DeckBoard/backend/push-gateway/README.md)
 
+### Mac Receiver Relay (Optional)
+
+For actions that iOS cannot execute while the receiver app is in background, DeskBoard can forward commands to a Mac relay on the same LAN:
+
+- Configure in app: **Settings -> Mac Receiver Relay**
+- Included relay implementation: [`backend/mac-receiver/README.md`](/Users/ahmed/Downloads/DeckBoard/backend/mac-receiver/README.md)
+
 ---
 
 ## ⚡ Supported Actions
 
-| Category | Actions |
-|---|---|
-| **Media** | Play, Pause, Play/Pause, Next Track, Previous Track, Volume Up, Volume Down |
-| **Presentation** | Next Slide, Previous Slide, Start, End |
-| **General** | Open URL, Send Text, Open Deep Link |
-| **Keyboard** | Map keyboard shortcuts |
-| **Macro** | Chain multiple actions together |
+| Category | Actions | iOS Receiver Background |
+|---|---|---|
+| **Media** | Play/Pause, Next/Previous, Volume Up/Down, Mute | ✅ |
+| **General** | Send Text | ✅ |
+| **Display** | Brightness Up/Down | ✅ |
+| **Apps / URL / Deep link** | Open app, open URL, deep link | ⚠️ Foreground required |
+| **Shortcuts** | Run Siri Shortcut / script-like shortcuts | ⚠️ Foreground required |
+| **Presentation** | Next/Prev/Start/End (shortcut based) | ⚠️ Foreground required |
+| **Macro** | Sequence of actions | Mixed (depends on each step) |
+
+Notes:
+- DeskBoard now labels actions in editor with background support status.
+- Foreground-required actions are queued and auto-run when receiver returns to foreground.
+- If Mac Relay is enabled, blocked background actions are forwarded to macOS instead of being dropped.
 
 ---
 

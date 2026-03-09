@@ -67,6 +67,12 @@ struct DiagnosticsView: View {
                 InfoRow(label: "APNs Token", value: shortToken(AppConfiguration.pushToken))
                 InfoRow(label: "Device UUID", value: PeerSession.stableDeviceUUID)
             }
+
+            Section("Background Commands") {
+                InfoRow(label: "Queued Foreground Actions", value: "\(appState.deferredCommandCount)")
+                InfoRow(label: "Mac Relay Enabled", value: AppConfiguration.backgroundRelayEnabled ? "Yes" : "No")
+                InfoRow(label: "Mac Relay URL", value: AppConfiguration.backgroundRelayURL.trimmed.isEmpty ? "Not set" : "Configured")
+            }
         }
         .navigationTitle("Diagnostics")
         .navigationBarTitleDisplayMode(.inline)

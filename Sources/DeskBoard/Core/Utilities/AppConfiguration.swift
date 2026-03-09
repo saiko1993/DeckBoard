@@ -22,6 +22,9 @@ enum AppConfiguration {
         static let pushWakeEnabled = "com.deskboard.pushWakeEnabled"
         static let pushGatewayURL = "com.deskboard.pushGatewayURL"
         static let pushGatewayAPIKey = "com.deskboard.pushGatewayAPIKey"
+        static let backgroundRelayEnabled = "com.deskboard.backgroundRelayEnabled"
+        static let backgroundRelayURL = "com.deskboard.backgroundRelayURL"
+        static let backgroundRelayAPIKey = "com.deskboard.backgroundRelayAPIKey"
     }
 
     // MARK: - Defaults
@@ -87,6 +90,27 @@ enum AppConfiguration {
 
     static var pushGatewayBaseURL: URL? {
         let trimmed = pushGatewayURL.trimmed
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed)
+    }
+
+    static var backgroundRelayEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: Keys.backgroundRelayEnabled) as? Bool ?? false }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.backgroundRelayEnabled) }
+    }
+
+    static var backgroundRelayURL: String {
+        get { UserDefaults.standard.string(forKey: Keys.backgroundRelayURL) ?? "" }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.backgroundRelayURL) }
+    }
+
+    static var backgroundRelayAPIKey: String? {
+        get { UserDefaults.standard.string(forKey: Keys.backgroundRelayAPIKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.backgroundRelayAPIKey) }
+    }
+
+    static var backgroundRelayBaseURL: URL? {
+        let trimmed = backgroundRelayURL.trimmed
         guard !trimmed.isEmpty else { return nil }
         return URL(string: trimmed)
     }

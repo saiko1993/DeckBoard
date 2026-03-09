@@ -192,6 +192,17 @@ struct ButtonEditorView: View {
                 }
             }
 
+            HStack(spacing: 8) {
+                Image(systemName: viewModel.selectedAction.requiresForegroundOnIOSReceiver
+                      ? "exclamationmark.triangle.fill"
+                      : "checkmark.shield.fill")
+                    .foregroundStyle(viewModel.selectedAction.requiresForegroundOnIOSReceiver ? .orange : .green)
+                Text(viewModel.selectedAction.backgroundExecutionHint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 2)
+
             if case .openURL = viewModel.selectedAction {
                 TextField("https://example.com", text: $viewModel.urlText)
                     .keyboardType(.URL)
@@ -486,6 +497,15 @@ struct ActionPickerView: View {
                 Text(customTitle ?? action.displayName)
                     .foregroundStyle(.primary)
                 Spacer()
+                if action.requiresForegroundOnIOSReceiver {
+                    Text("FG")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.12))
+                        .clipShape(Capsule())
+                }
                 if action.displayName == selectedAction.displayName {
                     Image(systemName: "checkmark")
                         .foregroundStyle(.blue)
@@ -526,6 +546,13 @@ struct ActionPickerView: View {
                 Text(app.name)
                     .foregroundStyle(.primary)
                 Spacer()
+                Text("FG")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.orange.opacity(0.12))
+                    .clipShape(Capsule())
                 if case .openApp(let id) = selectedAction, id == app.id {
                     Image(systemName: "checkmark")
                         .foregroundStyle(.blue)
@@ -570,6 +597,13 @@ private struct AppCategoryPickerView: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
+                        Text("FG")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.12))
+                            .clipShape(Capsule())
                         if case .openApp(let id) = selectedAction, id == app.id {
                             Image(systemName: "checkmark")
                                 .foregroundStyle(.blue)
@@ -582,4 +616,3 @@ private struct AppCategoryPickerView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
-
