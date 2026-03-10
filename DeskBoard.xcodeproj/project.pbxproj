@@ -746,7 +746,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq;
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.DeskBoardControls;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
 				SDKROOT = iphoneos;
@@ -823,7 +823,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq;
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.DeskBoardControls;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
 				SDKROOT = iphoneos;
