@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require "shellwords"
 
 # =============================================================================
 # DeskBoard - Fastfile
@@ -21,8 +22,63 @@ APP_CONTROLS_IDENTIFIER = ENV["APP_CONTROLS_BUNDLE_IDENTIFIER"] || "#{APP_IDENTI
 SCHEME         = "DeskBoard"
 WORKSPACE      = "DeskBoard.xcworkspace"
 PROJECT        = "DeskBoard.xcodeproj"
+TARGET_APP     = "DeskBoard"
+TARGET_CONTROLS = "DeskBoardControls"
+
+def extract_build_setting(raw, key)
+  line = raw.lines.find { |item| item.strip.start_with?("#{key} =") }
+  return nil unless line
+  line.split("=", 2).last.to_s.strip
+end
 
 platform :ios do
+  private_lane :signing_preflight do |options|
+    profile_type = (options[:profile_type] || "AppStore").to_s
+    require_env_profiles = options[:require_env_profiles] == true || ENV["CI"].to_s.downcase == "true"
+    app_id = APP_IDENTIFIER.to_s.strip
+    controls_id = APP_CONTROLS_IDENTIFIER.to_s.strip
+    forbidden_token = ["sound", "grabshare"].join
+
+    UI.user_error!("APP_IDENTIFIER is empty") if app_id.empty?
+    UI.user_error!("APP_CONTROLS_IDENTIFIER is empty") if controls_id.empty?
+    UI.user_error!("Forbidden bundle ID token detected") if app_id.include?(forbidden_token) || controls_id.include?(forbidden_token)
+    UI.user_error!("Controls bundle id must be under app root and end with .controls") unless controls_id == "#{app_id}.controls"
+
+    app_profile = "match #{profile_type} #{app_id}"
+    controls_profile = "match #{profile_type} #{controls_id}"
+    UI.user_error!("App and controls profiles must differ for manual split signing") if app_profile == controls_profile
+    UI.user_error!("Forbidden profile token detected") if app_profile.include?(forbidden_token) || controls_profile.include?(forbidden_token)
+
+    if require_env_profiles
+      app_profile_env = ENV["PROVISIONING_PROFILE_SPECIFIER"].to_s.strip
+      controls_profile_env = ENV["PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS"].to_s.strip
+      UI.user_error!("Missing env PROVISIONING_PROFILE_SPECIFIER in CI") if app_profile_env.empty?
+      UI.user_error!("Missing env PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS in CI") if controls_profile_env.empty?
+      UI.user_error!("CI profile specifiers must be different (app vs controls)") if app_profile_env == controls_profile_env
+      UI.user_error!("Forbidden profile token detected in CI env") if app_profile_env.include?(forbidden_token) || controls_profile_env.include?(forbidden_token)
+    end
+
+    project_path = File.expand_path("../#{PROJECT}", __dir__)
+    app_settings = sh("xcodebuild -project #{project_path.shellescape} -target #{TARGET_APP.shellescape} -configuration Release -showBuildSettings")
+    controls_settings = sh("xcodebuild -project #{project_path.shellescape} -target #{TARGET_CONTROLS.shellescape} -configuration Release -showBuildSettings")
+
+    app_bundle_setting = extract_build_setting(app_settings, "PRODUCT_BUNDLE_IDENTIFIER")
+    controls_bundle_setting = extract_build_setting(controls_settings, "PRODUCT_BUNDLE_IDENTIFIER")
+    app_code_sign_style = extract_build_setting(app_settings, "CODE_SIGN_STYLE")
+    controls_code_sign_style = extract_build_setting(controls_settings, "CODE_SIGN_STYLE")
+
+    UI.user_error!("Release app bundle id mismatch: expected #{app_id}, got #{app_bundle_setting}") unless app_bundle_setting == app_id
+    UI.user_error!("Release controls bundle id mismatch: expected #{controls_id}, got #{controls_bundle_setting}") unless controls_bundle_setting == controls_id
+    UI.user_error!("Release app CODE_SIGN_STYLE must be Manual") unless app_code_sign_style == "Manual"
+    UI.user_error!("Release controls CODE_SIGN_STYLE must be Manual") unless controls_code_sign_style == "Manual"
+
+    repo_root = File.expand_path("..", __dir__)
+    forbidden_refs = sh("cd #{repo_root.shellescape} && rg -n #{forbidden_token.shellescape} . || true").to_s.strip
+    UI.user_error!("Found forbidden legacy token references:\n#{forbidden_refs}") unless forbidden_refs.empty?
+
+    UI.success("✅ Signing preflight passed for #{profile_type}")
+  end
+
   # ---------------------------------------------------------------------------
   # Setup
   # ---------------------------------------------------------------------------
@@ -119,6 +175,7 @@ platform :ios do
   desc "Build the app for development (Debug)"
   lane :build_debug do
     generate unless File.exist?("../#{PROJECT}")
+    signing_preflight(profile_type: "Development")
     sync_dev_certs
 
     gym(
@@ -143,6 +200,7 @@ platform :ios do
   desc "Build the app for AdHoc distribution"
   lane :build_adhoc do
     generate unless File.exist?("../#{PROJECT}")
+    signing_preflight(profile_type: "AdHoc")
     sync_adhoc_certs
 
     gym(
@@ -167,6 +225,7 @@ platform :ios do
   desc "Build the app for App Store release"
   lane :build_release do
     generate unless File.exist?("../#{PROJECT}")
+    signing_preflight(profile_type: "AppStore")
     sync_dist_certs
 
     gym(
