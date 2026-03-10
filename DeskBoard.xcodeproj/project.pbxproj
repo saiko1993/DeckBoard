@@ -631,7 +631,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "ICON=\"${SRCROOT}/Resources/Assets.xcassets/AppIcon.appiconset/icon.png\"\nDEST=\"${SRCROOT}/Resources/Assets.xcassets/AppIcon.appiconset\"\nif [ ! -f \"$ICON\" ] && [ -f \"${SRCROOT}/DeckBoard/Assets.xcassets/AppIcon.appiconset/icon.png\" ]; then\n  ICON=\"${SRCROOT}/DeckBoard/Assets.xcassets/AppIcon.appiconset/icon.png\"\n  cp \"$ICON\" \"$DEST/icon.png\"\nfi\nif [ -f \"$ICON\" ]; then\n  sips -z 40 40 \"$ICON\" --out \"$DEST/icon-20@2x.png\" 2>/dev/null || true\n  sips -z 60 60 \"$ICON\" --out \"$DEST/icon-20@3x.png\" 2>/dev/null || true\n  sips -z 58 58 \"$ICON\" --out \"$DEST/icon-29@2x.png\" 2>/dev/null || true\n  sips -z 87 87 \"$ICON\" --out \"$DEST/icon-29@3x.png\" 2>/dev/null || true\n  sips -z 80 80 \"$ICON\" --out \"$DEST/icon-40@2x.png\" 2>/dev/null || true\n  sips -z 120 120 \"$ICON\" --out \"$DEST/icon-40@3x.png\" 2>/dev/null || true\n  sips -z 120 120 \"$ICON\" --out \"$DEST/icon-60@2x.png\" 2>/dev/null || true\n  sips -z 180 180 \"$ICON\" --out \"$DEST/icon-60@3x.png\" 2>/dev/null || true\n  sips -z 20 20 \"$ICON\" --out \"$DEST/icon-20.png\" 2>/dev/null || true\n  sips -z 29 29 \"$ICON\" --out \"$DEST/icon-29.png\" 2>/dev/null || true\n  sips -z 40 40 \"$ICON\" --out \"$DEST/icon-40.png\" 2>/dev/null || true\n  sips -z 76 76 \"$ICON\" --out \"$DEST/icon-76.png\" 2>/dev/null || true\n  sips -z 152 152 \"$ICON\" --out \"$DEST/icon-76@2x.png\" 2>/dev/null || true\n  sips -z 167 167 \"$ICON\" --out \"$DEST/icon-83.5@2x.png\" 2>/dev/null || true\n  sips -z 1024 1024 \"$ICON\" --out \"$DEST/icon-1024.png\" 2>/dev/null || true\nfi\n";
+			shellScript = "ICON=\"${SRCROOT}/Resources/Assets.xcassets/AppIcon.appiconset/icon.png\"\nDEST=\"${SRCROOT}/Resources/Assets.xcassets/AppIcon.appiconset\"\nif [ ! -f \"$ICON\" ] && [ -f \"${SRCROOT}/DeskBoard/Assets.xcassets/AppIcon.appiconset/icon.png\" ]; then\n  ICON=\"${SRCROOT}/DeskBoard/Assets.xcassets/AppIcon.appiconset/icon.png\"\n  cp \"$ICON\" \"$DEST/icon.png\"\nfi\nif [ -f \"$ICON\" ]; then\n  sips -z 40 40 \"$ICON\" --out \"$DEST/icon-20@2x.png\" 2>/dev/null || true\n  sips -z 60 60 \"$ICON\" --out \"$DEST/icon-20@3x.png\" 2>/dev/null || true\n  sips -z 58 58 \"$ICON\" --out \"$DEST/icon-29@2x.png\" 2>/dev/null || true\n  sips -z 87 87 \"$ICON\" --out \"$DEST/icon-29@3x.png\" 2>/dev/null || true\n  sips -z 80 80 \"$ICON\" --out \"$DEST/icon-40@2x.png\" 2>/dev/null || true\n  sips -z 120 120 \"$ICON\" --out \"$DEST/icon-40@3x.png\" 2>/dev/null || true\n  sips -z 120 120 \"$ICON\" --out \"$DEST/icon-60@2x.png\" 2>/dev/null || true\n  sips -z 180 180 \"$ICON\" --out \"$DEST/icon-60@3x.png\" 2>/dev/null || true\n  sips -z 20 20 \"$ICON\" --out \"$DEST/icon-20.png\" 2>/dev/null || true\n  sips -z 29 29 \"$ICON\" --out \"$DEST/icon-29.png\" 2>/dev/null || true\n  sips -z 40 40 \"$ICON\" --out \"$DEST/icon-40.png\" 2>/dev/null || true\n  sips -z 76 76 \"$ICON\" --out \"$DEST/icon-76.png\" 2>/dev/null || true\n  sips -z 152 152 \"$ICON\" --out \"$DEST/icon-76@2x.png\" 2>/dev/null || true\n  sips -z 167 167 \"$ICON\" --out \"$DEST/icon-83.5@2x.png\" 2>/dev/null || true\n  sips -z 1024 1024 \"$ICON\" --out \"$DEST/icon-1024.png\" 2>/dev/null || true\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -736,6 +736,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
 				INFOPLIST_FILE = Resources/DeskBoardWidget/Info.plist;
@@ -746,9 +747,12 @@
 					"@executable_path/../../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.DeskBoardControls;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -809,6 +813,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
 				INFOPLIST_FILE = Resources/DeskBoardWidget/Info.plist;
@@ -819,9 +824,11 @@
 					"@executable_path/../../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.DeskBoardControls;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Osize";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
