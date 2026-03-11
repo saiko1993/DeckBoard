@@ -192,7 +192,7 @@ nonisolated enum CommandPayload: Codable, Sendable {
     case pairingRejection(reason: String)
     case heartbeat
     case disconnect
-    case deviceInfo(name: String, role: String, version: String)
+    case deviceInfo(name: String, role: String, version: String, presenceState: String?, graceSeconds: Int?)
     case empty
 
     // MARK: - Coding
@@ -229,9 +229,15 @@ nonisolated enum CommandPayload: Codable, Sendable {
             try container.encode(PayloadType.heartbeat, forKey: .type)
         case .disconnect:
             try container.encode(PayloadType.disconnect, forKey: .type)
-        case .deviceInfo(let name, let role, let version):
+        case .deviceInfo(let name, let role, let version, let presenceState, let graceSeconds):
             try container.encode(PayloadType.deviceInfo, forKey: .type)
-            let data = DeviceInfoData(name: name, role: role, version: version)
+            let data = DeviceInfoData(
+                name: name,
+                role: role,
+                version: version,
+                presenceState: presenceState,
+                graceSeconds: graceSeconds
+            )
             try container.encode(data, forKey: .data)
         case .empty:
             try container.encode(PayloadType.empty, forKey: .type)
@@ -263,7 +269,13 @@ nonisolated enum CommandPayload: Codable, Sendable {
             self = .disconnect
         case .deviceInfo:
             let data = try container.decode(DeviceInfoData.self, forKey: .data)
-            self = .deviceInfo(name: data.name, role: data.role, version: data.version)
+            self = .deviceInfo(
+                name: data.name,
+                role: data.role,
+                version: data.version,
+                presenceState: data.presenceState,
+                graceSeconds: data.graceSeconds
+            )
         case .empty:
             self = .empty
         }
@@ -279,6 +291,48 @@ nonisolated enum CommandPayload: Codable, Sendable {
         let name: String
         let role: String
         let version: String
+        let presenceState: String?
+        let graceSeconds: Int?
+
+        private enum CodingKeys: String, CodingKey {
+            case name
+            case role
+            case version
+            case presenceState
+            case graceSeconds
+        }
+
+        init(
+            name: String,
+            role: String,
+            version: String,
+            presenceState: String?,
+            graceSeconds: Int?
+        ) {
+            self.name = name
+            self.role = role
+            self.version = version
+            self.presenceState = presenceState
+            self.graceSeconds = graceSeconds
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            name = try container.decode(String.self, forKey: .name)
+            role = try container.decode(String.self, forKey: .role)
+            version = try container.decode(String.self, forKey: .version)
+            presenceState = try container.decodeIfPresent(String.self, forKey: .presenceState)
+            graceSeconds = try container.decodeIfPresent(Int.self, forKey: .graceSeconds)
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(name, forKey: .name)
+            try container.encode(role, forKey: .role)
+            try container.encode(version, forKey: .version)
+            try container.encodeIfPresent(presenceState, forKey: .presenceState)
+            try container.encodeIfPresent(graceSeconds, forKey: .graceSeconds)
+        }
     }
 }
 

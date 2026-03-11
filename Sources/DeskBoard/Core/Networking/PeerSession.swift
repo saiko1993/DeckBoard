@@ -25,6 +25,13 @@ nonisolated struct DiscoveredPeer: Identifiable, @unchecked Sendable {
     var displayName: String { peerID.displayName }
 }
 
+nonisolated enum PeerPresenceState: String, Sendable {
+    case foreground
+    case background
+    case inactive
+    case unknown
+}
+
 final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
 
     static let shared = PeerSession()
@@ -66,11 +73,19 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     private var backgroundNetworkingEnabled: Bool = false
     private var isServicesRunning: Bool = false
     private var isEnteringForeground: Bool = false
+    private var remotePresenceState: PeerPresenceState = .unknown
+    private var remoteBackgroundGraceUntil: Date?
 
     private let staleConnectionTimeout: TimeInterval = 90
     private let maxStaleMisses: Int = 3
     private let inviteRetryCooldown: TimeInterval = 12
+    private let receiverBackgroundGraceSeconds: Int = 180
     private var canRunNetworking: Bool { isInForeground || backgroundNetworkingEnabled }
+    private var isRemoteInBackgroundGrace: Bool {
+        guard remotePresenceState == .background else { return false }
+        guard let until = remoteBackgroundGraceUntil else { return false }
+        return Date() < until
+    }
 
     private let timerQueue = DispatchQueue(label: "com.deskboard.peersession.timers", qos: .userInitiated)
     private let sessionLock = NSLock()
@@ -183,6 +198,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         staleMissCount = 0
         pendingInvitePeers = []
         pendingInviteTimestamps = [:]
+        remotePresenceState = .unknown
+        remoteBackgroundGraceUntil = nil
         sessionLock.unlock()
 
         updateOnMain {
@@ -293,6 +310,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         backgroundNetworkingEnabled = false
         pendingInvitePeers = []
         pendingInviteTimestamps = [:]
+        remotePresenceState = .unknown
+        remoteBackgroundGraceUntil = nil
         staleMissCount = 0
         BackgroundKeepAliveService.shared.stop()
         cancelAllTimers()
@@ -370,6 +389,8 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         backgroundNetworkingEnabled = false
         pendingInvitePeers = []
         pendingInviteTimestamps = [:]
+        remotePresenceState = .unknown
+        remoteBackgroundGraceUntil = nil
         staleMissCount = 0
         BackgroundKeepAliveService.shared.stop()
         cancelAllTimers()
@@ -571,7 +592,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
                 guard strongSelf.canRunNetworking else { return }
                 guard strongSelf.isConnected else { return }
                 let elapsed = Date().timeIntervalSince(strongSelf.lastDataReceivedTime)
-                if elapsed > strongSelf.staleConnectionTimeout {
+                let dynamicTimeout: TimeInterval = strongSelf.isRemoteInBackgroundGrace
+                    ? max(strongSelf.staleConnectionTimeout, TimeInterval(strongSelf.receiverBackgroundGraceSeconds))
+                    : strongSelf.staleConnectionTimeout
+                if elapsed > dynamicTimeout {
                     strongSelf.staleMissCount += 1
                     if strongSelf.staleMissCount < strongSelf.maxStaleMisses {
                         let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: deviceName)
@@ -589,6 +613,14 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
     }
 
     private func handleStaleConnection() {
+        if isRemoteInBackgroundGrace {
+            let remaining = max(0, remoteBackgroundGraceUntil?.timeIntervalSinceNow ?? 0)
+            peerLog.info("STALE-001 Skip stale disconnect during background grace, remaining=\(remaining, privacy: .public)s")
+            staleMissCount = 0
+            let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: currentDeviceName)
+            send(command: msg)
+            return
+        }
         staleMissCount = 0
         sessionLock.lock()
         let connected = session?.connectedPeers.isEmpty == false
@@ -685,6 +717,9 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         if isConnected {
             let msg = CommandMessage(type: .heartbeat, payload: .heartbeat, senderID: currentDeviceName)
             send(command: msg)
+            if currentRole == .receiver {
+                sendPresenceUpdate(for: .background, graceSeconds: receiverBackgroundGraceSeconds)
+            }
         }
         if backgroundNetworkingEnabled {
             if isConnected {
@@ -702,6 +737,9 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         isInForeground = true
         backgroundNetworkingEnabled = false
         BackgroundKeepAliveService.shared.stop()
+        if currentRole == .receiver, isConnected {
+            sendPresenceUpdate(for: .foreground, graceSeconds: nil)
+        }
         guard autoReconnectEnabled, currentRole != .unset else { return }
         guard !isEnteringForeground else {
             peerLog.info("LIFECYCLE-001 enterForeground already in progress, skipping")
@@ -731,6 +769,9 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
             if !hasAdvertiser || !hasBrowser {
                 isServicesRunning = false
                 startAllServices()
+            }
+            if currentRole == .receiver {
+                sendPresenceUpdate(for: .foreground, graceSeconds: nil)
             }
         }
         isEnteringForeground = false
@@ -795,7 +836,45 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         registerForPushWake()
         if isConnected && canRunNetworking {
             startHeartbeat()
+            if currentRole == .receiver {
+                sendPresenceUpdate(for: isInForeground ? .foreground : .background, graceSeconds: receiverBackgroundGraceSeconds)
+            }
         }
+    }
+
+    private func sendPresenceUpdate(for state: PeerPresenceState, graceSeconds: Int?) {
+        guard isConnected else { return }
+        let normalizedGrace: Int? = {
+            guard state == .background else { return nil }
+            return max(30, graceSeconds ?? receiverBackgroundGraceSeconds)
+        }()
+        let message = CommandMessage(
+            type: .deviceInfo,
+            payload: .deviceInfo(
+                name: currentDeviceName,
+                role: currentRole.rawValue,
+                version: AppConfiguration.appVersion,
+                presenceState: state.rawValue,
+                graceSeconds: normalizedGrace
+            ),
+            senderID: currentDeviceName,
+            protocolVersion: 2,
+            originDeviceUUID: Self.stableDeviceUUID,
+            deliveryPolicy: .bestEffort,
+            ttlSeconds: 30
+        )
+        send(command: message)
+    }
+
+    private func updateRemotePresence(stateRaw: String?, graceSeconds: Int?) {
+        let state = PeerPresenceState(rawValue: stateRaw ?? "") ?? .unknown
+        remotePresenceState = state
+        if state == .background {
+            let grace = max(30, graceSeconds ?? receiverBackgroundGraceSeconds)
+            remoteBackgroundGraceUntil = Date().addingTimeInterval(TimeInterval(grace))
+            return
+        }
+        remoteBackgroundGraceUntil = nil
     }
 
     private func updateOnMain(_ block: @escaping @Sendable () -> Void) {
@@ -832,7 +911,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         let deviceName = currentDeviceName
         guard !deviceName.isEmpty else { return }
         Task {
-            await PushWakeService.shared.registerCurrentDevice(role: role, deviceName: deviceName)
+            let result = await PushWakeService.shared.registerCurrentDevice(role: role, deviceName: deviceName)
+            if !result.success {
+                peerLog.error("PUSH-REGISTER-001 Failed code=\(result.errorCode ?? "unknown", privacy: .public)")
+            }
         }
     }
 
@@ -840,7 +922,10 @@ final class PeerSession: NSObject, @unchecked Sendable, ObservableObject {
         guard autoReconnectEnabled else { return }
         guard let targetUUID = lastConnectedPeerUUID, !targetUUID.isEmpty else { return }
         Task {
-            await PushWakeService.shared.wakePeer(targetDeviceUUID: targetUUID, reason: reason)
+            let result = await PushWakeService.shared.wakePeer(targetDeviceUUID: targetUUID, reason: reason)
+            if !result.success {
+                peerLog.error("PUSH-WAKE-001 Failed code=\(result.errorCode ?? "unknown", privacy: .public)")
+            }
         }
     }
 }
@@ -867,6 +952,8 @@ extension PeerSession: MCSessionDelegate {
                 self.stopReconnectTimer()
                 self.lastDataReceivedTime = Date()
                 self.staleMissCount = 0
+                self.remotePresenceState = .unknown
+                self.remoteBackgroundGraceUntil = nil
 
                 let peerUUID = self.discoveredPeers.first(where: { $0.id == peerName })?.deviceUUID
                 self.lastConnectedPeerUUID = peerUUID
@@ -881,6 +968,9 @@ extension PeerSession: MCSessionDelegate {
                 self.connectionState = .connected(to: device)
                 if self.canRunNetworking {
                     self.startHeartbeat()
+                }
+                if self.currentRole == .receiver {
+                    self.sendPresenceUpdate(for: self.isInForeground ? .foreground : .background, graceSeconds: self.receiverBackgroundGraceSeconds)
                 }
                 self.registerForPushWake()
 
@@ -954,7 +1044,9 @@ extension PeerSession: MCSessionDelegate {
                 onConnectionLost()
             }
         case .deviceInfo:
-            break
+            if case .deviceInfo(_, _, _, let presenceState, let graceSeconds) = message.payload {
+                updateRemotePresence(stateRaw: presenceState, graceSeconds: graceSeconds)
+            }
         }
     }
 }

@@ -29,6 +29,10 @@ nonisolated struct BackupSettings: Codable, Sendable {
     var autoReconnect: Bool
     var timeoutSeconds: Double
     var retryCount: Int
+    var pushWakeEnabled: Bool?
+    var pushGatewayURL: String?
+    var backgroundRelayEnabled: Bool?
+    var backgroundRelayURL: String?
 }
 
 nonisolated enum BackupError: Error, LocalizedError, Sendable {

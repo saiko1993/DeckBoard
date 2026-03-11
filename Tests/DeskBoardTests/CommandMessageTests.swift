@@ -103,6 +103,56 @@ final class CommandMessageTests: XCTestCase {
         }
     }
 
+    func testDeviceInfoRoundTripWithPresence() throws {
+        let message = CommandMessage(
+            type: .deviceInfo,
+            payload: .deviceInfo(
+                name: "Ahmed iPad",
+                role: DeviceRole.receiver.rawValue,
+                version: "1.0.0",
+                presenceState: "background",
+                graceSeconds: 180
+            ),
+            senderID: "Ahmed iPad"
+        )
+        let data = try encoder.encode(message)
+        let decoded = try encoder.decode(data)
+
+        if case .deviceInfo(let name, let role, let version, let presenceState, let graceSeconds) = decoded.payload {
+            XCTAssertEqual(name, "Ahmed iPad")
+            XCTAssertEqual(role, DeviceRole.receiver.rawValue)
+            XCTAssertEqual(version, "1.0.0")
+            XCTAssertEqual(presenceState, "background")
+            XCTAssertEqual(graceSeconds, 180)
+        } else {
+            XCTFail("Expected .deviceInfo payload")
+        }
+    }
+
+    func testLegacyDeviceInfoDecodesWithoutPresence() throws {
+        let legacy: [String: Any] = [
+            "type": "deviceInfo",
+            "data": [
+                "name": "Legacy Device",
+                "role": "receiver",
+                "version": "1.0.0"
+            ]
+        ]
+
+        let payloadData = try JSONSerialization.data(withJSONObject: legacy)
+        let payload = try JSONDecoder().decode(CommandPayload.self, from: payloadData)
+
+        if case .deviceInfo(let name, let role, let version, let presenceState, let graceSeconds) = payload {
+            XCTAssertEqual(name, "Legacy Device")
+            XCTAssertEqual(role, "receiver")
+            XCTAssertEqual(version, "1.0.0")
+            XCTAssertNil(presenceState)
+            XCTAssertNil(graceSeconds)
+        } else {
+            XCTFail("Expected .deviceInfo payload")
+        }
+    }
+
     func testURLActionRoundTrip() throws {
         let url = "https://example.com/test"
         let message = CommandMessage(

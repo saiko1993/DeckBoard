@@ -17,7 +17,7 @@ This worker allows two paired DeskBoard devices to wake each other using APNs si
 3. APNs metadata:
    - `APNS_KEY_ID`
    - `APNS_TEAM_ID`
-   - `APNS_BUNDLE_ID` (must match app bundle id, e.g. `com.deskboard.app`)
+   - `APNS_BUNDLE_ID` (must match app bundle id exactly, e.g. `app.rork.qk8s5pz3bbw4sk3nw0gmq`)
 
 ## Deploy
 
@@ -67,6 +67,18 @@ In DeskBoard settings on both devices:
 
 ## API payloads
 
+### Health
+
+`GET /health`
+
+Returns metadata used by iOS diagnostics:
+
+- `service`
+- `version`
+- `apnsTopic`
+- `apnsUseSandbox`
+- `configured`
+
 ### Register
 
 `POST /v1/register`
@@ -94,3 +106,17 @@ In DeskBoard settings on both devices:
   "reason": "connection_lost"
 }
 ```
+
+## Local validation
+
+Run gateway tests from this folder:
+
+```bash
+npm test
+```
+
+Covered flow:
+
+1. `GET /health`
+2. `POST /v1/register`
+3. `POST /v1/wake`

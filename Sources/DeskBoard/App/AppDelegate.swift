@@ -51,10 +51,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         AppConfiguration.pushToken = token
         Self.appLog.info("PUSH-001 Registered APNs token")
         Task {
-            await PushWakeService.shared.registerCurrentDevice(
+            let result = await PushWakeService.shared.registerCurrentDevice(
                 role: AppConfiguration.deviceRole,
                 deviceName: AppConfiguration.deviceName
             )
+            if !result.success {
+                Self.appLog.error("PUSH-003 Initial registration failed code=\(result.errorCode ?? "unknown", privacy: .public)")
+            }
         }
     }
 

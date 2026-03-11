@@ -1,5 +1,7 @@
 import { SignJWT, importPKCS8 } from "jose";
 
+const SERVICE_VERSION = "1.1.0";
+
 const corsHeaders = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET,POST,OPTIONS",
@@ -23,7 +25,17 @@ export default {
     const path = url.pathname;
 
     if (path === "/health" && request.method === "GET") {
-      return json({ ok: true, service: "deskboard-push-gateway" }, 200);
+      return json(
+        {
+          ok: true,
+          service: "deskboard-push-gateway",
+          version: SERVICE_VERSION,
+          apnsTopic: env.APNS_BUNDLE_ID || null,
+          apnsUseSandbox: env.APNS_USE_SANDBOX === "true",
+          configured: hasRequiredApnsConfig(env)
+        },
+        200
+      );
     }
 
     if (!authorizeRequest(request, env)) {
@@ -214,6 +226,15 @@ function validateEnv(env) {
       throw new Error(`missing_env_${key}`);
     }
   }
+}
+
+function hasRequiredApnsConfig(env) {
+  for (const key of ["APNS_KEY_ID", "APNS_TEAM_ID", "APNS_BUNDLE_ID", "APNS_PRIVATE_KEY"]) {
+    if (!env[key] || String(env[key]).trim() === "") {
+      return false;
+    }
+  }
+  return true;
 }
 
 function normalizePem(raw) {

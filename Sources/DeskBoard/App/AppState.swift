@@ -697,7 +697,10 @@ final class AppState: ObservableObject {
         let role = deviceRole
         let name = deviceName
         Task {
-            await PushWakeService.shared.registerCurrentDevice(role: role, deviceName: name)
+            let result = await PushWakeService.shared.registerCurrentDevice(role: role, deviceName: name)
+            if !result.success {
+                stateLog.error("PUSH-SYNC-001 Registration failed code=\(result.errorCode ?? "unknown", privacy: .public)")
+            }
         }
     }
 
@@ -932,11 +935,20 @@ actor PushWakeService {
         session = URLSession(configuration: config)
     }
 
-    func registerCurrentDevice(role: DeviceRole, deviceName: String) async {
-        guard AppConfiguration.pushWakeEnabled else { return }
-        guard role != .unset else { return }
-        guard let baseURL = AppConfiguration.pushGatewayBaseURL else { return }
-        guard let apnsToken = AppConfiguration.pushToken?.trimmed, !apnsToken.isEmpty else { return }
+    @discardableResult
+    func registerCurrentDevice(role: DeviceRole, deviceName: String) async -> PushWakeResult {
+        guard AppConfiguration.pushWakeEnabled else {
+            return .failure(errorCode: "push_wake_disabled", detail: "Push wake disabled")
+        }
+        guard role != .unset else {
+            return .failure(errorCode: "role_unset", detail: "Device role is not set")
+        }
+        guard let baseURL = AppConfiguration.pushGatewayBaseURL else {
+            return .failure(errorCode: "gateway_missing", detail: "Gateway URL is missing")
+        }
+        guard let apnsToken = AppConfiguration.pushToken?.trimmed, !apnsToken.isEmpty else {
+            return .failure(errorCode: "apns_token_missing", detail: "APNs token is missing")
+        }
 
         let payload = RegisterPayload(
             deviceUUID: PeerSession.stableDeviceUUID,
@@ -947,7 +959,10 @@ actor PushWakeService {
             appVersion: AppConfiguration.appVersion
         )
 
+        let gatewaySignature = baseURL.absoluteString
+
         let signature = [
+            gatewaySignature,
             payload.deviceUUID,
             payload.apnsToken,
             payload.role,
@@ -958,32 +973,47 @@ actor PushWakeService {
         if signature == lastRegistrationSignature,
            let lastRegistrationAt,
            Date().timeIntervalSince(lastRegistrationAt) < registrationDebounce {
-            return
+            return .success(detail: "Registration is up to date")
         }
 
         do {
             let url = baseURL.appendingPathComponent("v1/register")
             let response = try await postJSON(url: url, body: payload)
-            if (200...299).contains(response.statusCode) {
+            if (200...299).contains(response.response.statusCode) {
                 lastRegistrationSignature = signature
                 lastRegistrationAt = Date()
                 log.info("PUSHWAKE-001 Device registration succeeded")
-                return
+                return .success(detail: "Registered", statusCode: response.response.statusCode)
             }
-            log.error("PUSHWAKE-002 Registration failed status=\(response.statusCode, privacy: .public)")
+            let parsedError = parseGatewayErrorCode(from: response.data)
+            let errorCode = parsedError ?? "gateway_http_\(response.response.statusCode)"
+            log.error("PUSHWAKE-002 Registration failed status=\(response.response.statusCode, privacy: .public)")
+            return .failure(
+                errorCode: errorCode,
+                detail: "Registration failed",
+                statusCode: response.response.statusCode
+            )
         } catch {
             log.error("PUSHWAKE-003 Registration request failed: \(String(describing: error), privacy: .public)")
+            return .failure(errorCode: "gateway_request_failed", detail: "Registration request failed")
         }
     }
 
-    func wakePeer(targetDeviceUUID: String, reason: String) async {
-        guard AppConfiguration.pushWakeEnabled else { return }
-        guard let baseURL = AppConfiguration.pushGatewayBaseURL else { return }
-        guard !targetDeviceUUID.trimmed.isEmpty else { return }
+    @discardableResult
+    func wakePeer(targetDeviceUUID: String, reason: String) async -> PushWakeResult {
+        guard AppConfiguration.pushWakeEnabled else {
+            return .failure(errorCode: "push_wake_disabled", detail: "Push wake disabled")
+        }
+        guard let baseURL = AppConfiguration.pushGatewayBaseURL else {
+            return .failure(errorCode: "gateway_missing", detail: "Gateway URL is missing")
+        }
+        guard !targetDeviceUUID.trimmed.isEmpty else {
+            return .failure(errorCode: "target_missing", detail: "Target device UUID is missing")
+        }
 
         let key = targetDeviceUUID.trimmed
         if let last = lastWakeAtByTarget[key], Date().timeIntervalSince(last) < wakeThrottle {
-            return
+            return .failure(errorCode: "wake_throttled", detail: "Wake request throttled")
         }
         lastWakeAtByTarget[key] = Date()
 
@@ -997,17 +1027,25 @@ actor PushWakeService {
         do {
             let url = baseURL.appendingPathComponent("v1/wake")
             let response = try await postJSON(url: url, body: payload)
-            if (200...299).contains(response.statusCode) {
+            if (200...299).contains(response.response.statusCode) {
                 log.info("PUSHWAKE-004 Wake request succeeded for target=\(key, privacy: .public)")
-                return
+                return .success(detail: "Wake sent", statusCode: response.response.statusCode)
             }
-            log.error("PUSHWAKE-005 Wake request failed status=\(response.statusCode, privacy: .public)")
+            let parsedError = parseGatewayErrorCode(from: response.data)
+            let errorCode = parsedError ?? "gateway_http_\(response.response.statusCode)"
+            log.error("PUSHWAKE-005 Wake request failed status=\(response.response.statusCode, privacy: .public)")
+            return .failure(
+                errorCode: errorCode,
+                detail: "Wake request failed",
+                statusCode: response.response.statusCode
+            )
         } catch {
             log.error("PUSHWAKE-006 Wake request failed: \(String(describing: error), privacy: .public)")
+            return .failure(errorCode: "gateway_request_failed", detail: "Wake request failed")
         }
     }
 
-    private func postJSON<T: Encodable>(url: URL, body: T) async throws -> HTTPURLResponse {
+    private func postJSON<T: Encodable>(url: URL, body: T) async throws -> (data: Data, response: HTTPURLResponse) {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -1016,11 +1054,35 @@ actor PushWakeService {
         }
         request.httpBody = try JSONEncoder().encode(body)
 
-        let (_, response) = try await session.data(for: request)
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
-        return httpResponse
+        return (data: data, response: httpResponse)
+    }
+
+    private func parseGatewayErrorCode(from data: Data) -> String? {
+        guard !data.isEmpty else { return nil }
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        if let error = object["error"] as? String {
+            return error.trimmed.isEmpty ? nil : error.trimmed
+        }
+        return nil
+    }
+}
+
+nonisolated struct PushWakeResult: Sendable {
+    let success: Bool
+    let errorCode: String?
+    let detail: String
+    let statusCode: Int?
+
+    static func success(detail: String, statusCode: Int? = nil) -> PushWakeResult {
+        PushWakeResult(success: true, errorCode: nil, detail: detail, statusCode: statusCode)
+    }
+
+    static func failure(errorCode: String, detail: String, statusCode: Int? = nil) -> PushWakeResult {
+        PushWakeResult(success: false, errorCode: errorCode, detail: detail, statusCode: statusCode)
     }
 }
 

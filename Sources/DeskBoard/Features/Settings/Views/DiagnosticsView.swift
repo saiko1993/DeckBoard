@@ -5,6 +5,8 @@ struct DiagnosticsView: View {
     @State private var testURL: String = ""
     @State private var testResult: String?
     @State private var isTesting = false
+    @State private var isCheckingReadiness = false
+    @State private var readiness: ConnectionReadiness = .baseline
     @State private var isCheckingRelayCapabilities = false
     @State private var relayCapabilitiesResult: String?
     @State private var relayCapabilities: [String] = []
@@ -16,6 +18,48 @@ struct DiagnosticsView: View {
                 InfoRow(label: "Device Role", value: appState.deviceRole.title)
                 InfoRow(label: "Device Name", value: appState.deviceName)
                 InfoRow(label: "Trusted Devices", value: "\(appState.trustedDevices.count)")
+            }
+
+            Section("Connection Readiness") {
+                HStack {
+                    Text("Status")
+                    Spacer()
+                    Text(readiness.overallStatus.title)
+                        .foregroundStyle(readinessColor)
+                }
+                InfoRow(label: "APNs Token", value: readiness.apnsTokenReady ? "Ready" : "Missing")
+                InfoRow(label: "Wake Gateway", value: readiness.gatewayConfigured ? "Configured" : "Missing")
+                InfoRow(label: "Gateway Reachability", value: readiness.gatewayReachable ? "Reachable" : "Unavailable")
+                InfoRow(label: "Relay", value: readiness.relayConfigured ? "Configured" : "Missing")
+                InfoRow(label: "APNs Topic Match", value: topicMatchValue)
+                InfoRow(label: "Blocking Error", value: readiness.blockingErrorCode ?? "None")
+
+                Button {
+                    runReadinessCheck()
+                } label: {
+                    HStack {
+                        Text("Run Readiness Check")
+                        Spacer()
+                        if isCheckingReadiness {
+                            ProgressView().scaleEffect(0.8)
+                        }
+                    }
+                }
+                .disabled(isCheckingReadiness)
+
+                if !readiness.notes.isEmpty {
+                    ForEach(readiness.notes, id: \.self) { note in
+                        Text("• \(note)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if readiness.apnsTopicMatchesBundle == false {
+                    Text("Fix guide: set APNS_BUNDLE_ID in your push gateway to match this app bundle identifier exactly.")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
             }
 
             Section("Data") {
@@ -122,6 +166,36 @@ struct DiagnosticsView: View {
         }
         .navigationTitle("Diagnostics")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            runReadinessCheck()
+        }
+    }
+
+    private var readinessColor: Color {
+        switch readiness.overallStatus {
+        case .ready:
+            return .green
+        case .partial:
+            return .orange
+        case .misconfigured:
+            return .red
+        }
+    }
+
+    private var topicMatchValue: String {
+        guard let topicMatch = readiness.apnsTopicMatchesBundle else { return "Unknown" }
+        return topicMatch ? "Matched" : "Mismatch"
+    }
+
+    private func runReadinessCheck() {
+        isCheckingReadiness = true
+        Task {
+            let snapshot = await ConnectionReadinessService.shared.evaluate()
+            await MainActor.run {
+                readiness = snapshot
+                isCheckingReadiness = false
+            }
+        }
     }
 
     private func testConnection() {

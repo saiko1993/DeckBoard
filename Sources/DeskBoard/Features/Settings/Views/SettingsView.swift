@@ -116,6 +116,12 @@ private struct _SettingsViewBody: View {
                     } label: {
                         Label("Save Wake Settings", systemImage: "square.and.arrow.down")
                     }
+
+                    if let message = viewModel.pushGatewayValidationMessage {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
                 }
 
                 Section("Mac Receiver Relay") {
@@ -153,6 +159,12 @@ private struct _SettingsViewBody: View {
                         viewModel.saveBackgroundRelayAPIKey()
                     } label: {
                         Label("Save Relay Settings", systemImage: "square.and.arrow.down")
+                    }
+
+                    if let message = viewModel.relayValidationMessage {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundStyle(.red)
                     }
                 }
 
@@ -212,12 +224,22 @@ private struct _SettingsViewBody: View {
                 }
 
                 Section("Debug") {
+#if DEBUG
                     Toggle(isOn: Binding(
                         get: { viewModel.experimentalBackgroundKeepAliveEnabled },
                         set: { viewModel.saveExperimentalBackgroundKeepAlive($0) }
                     )) {
-                        Label("Experimental Background Keep-Alive", systemImage: "waveform")
+                        Label("Internal: Experimental Background Keep-Alive", systemImage: "waveform")
                     }
+#else
+                    HStack {
+                        Label("Background Keep-Alive", systemImage: "waveform")
+                        Spacer()
+                        Text("Internal testing only")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+#endif
 
                     NavigationLink {
                         IntentControlsView()

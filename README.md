@@ -52,6 +52,7 @@ Then fill `.env` with your Apple developer credentials.
 For manual signing, provide separate provisioning profiles for:
 - `PROVISIONING_PROFILE_SPECIFIER` (main app bundle id)
 - `PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS` (widget/control extension bundle id)
+- Push gateway APNs topic must match the iOS app bundle id exactly (`app.rork.qk8s5pz3bbw4sk3nw0gmq`).
 
 ## Build and test
 
@@ -70,6 +71,7 @@ bundle exec fastlane build_debug
   - fail immediately
 - Experimental audio keep-alive is off by default and must be explicitly enabled from Settings > Debug.
 - Intent-driven quick actions are available via App Intents, Home Screen widget, and Control Center controls (iOS 18+).
+- Use Diagnostics > Connection Readiness to verify APNs token, gateway reachability, APNs topic match, and relay configuration.
 
 ## Relay setup
 

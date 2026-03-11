@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		038893A8A49234934A58CDCB /* MediaControlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3E7B462F833C22CC81EE7D1 /* MediaControlService.swift */; };
+		102E59AC647E42CA633BC83B /* ConnectionReadinessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2CDFA0B7087EBBF876C21A /* ConnectionReadinessTests.swift */; };
 		1084FAC4F95A3F8684FE98D2 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8B46C2DF460D2E35BD545C /* RootView.swift */; };
 		1207FE1BB5AC2BF341B5593A /* DeskBoardControlWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D62589EF7002C2A00734FF7F /* DeskBoardControlWidgetBundle.swift */; };
 		15085774CCF00862CAA2FE69 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = E002A82D44BA31CF6758FD5E /* KeychainAccess */; };
@@ -52,8 +53,10 @@
 		BD9917C46DF828B815B84E0C /* DeskBoardIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AA2F0E09ED693B4CD1B2042 /* DeskBoardIntents.swift */; };
 		C5388FE63A025972A09C52CD /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EDF287A9F85F2E505B0E5FB /* DiagnosticsView.swift */; };
 		C7ACE3C4650E56A27474284C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE8DF0CBABB87977F0059F8 /* SettingsView.swift */; };
+		C8E7D3D5D5D2BFA9D68CE1E9 /* ConnectionReadiness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C9A7CE2A5CEAF7F6F67697 /* ConnectionReadiness.swift */; };
 		CA525B5C3EC56CCE398B2650 /* ButtonAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FB650998C6A688CFDEA00D7 /* ButtonAction.swift */; };
 		D37D41FC3A42F61E69E932F5 /* SenderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C796FC91C49753D83F08524 /* SenderView.swift */; };
+		D47629B0BABCD0E53AC04374 /* ConnectionReadinessService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33B570F6DF55C8D6DD6313A0 /* ConnectionReadinessService.swift */; };
 		D56693CBCEF6615A7307DC18 /* MultipeerConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 27435979ECB90C117531A035 /* MultipeerConnectivity.framework */; };
 		D6AEF20808B169F172D80AA3 /* DashboardModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CCEF3B3488D0D17EC0FAB7 /* DashboardModelTests.swift */; };
 		D8C1DEC8932EB730D98A6A49 /* IncomingCommandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D8CA8351E9F423A5B17F661 /* IncomingCommandView.swift */; };
@@ -119,9 +122,11 @@
 		2D8CA8351E9F423A5B17F661 /* IncomingCommandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingCommandView.swift; sourceTree = "<group>"; };
 		2DE8DB63B48ACDC9CFD7BEC9 /* DeskBoardControls.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = DeskBoardControls.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2F2D5C3FDDC8E31C043891FD /* ButtonEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonEditorViewModel.swift; sourceTree = "<group>"; };
+		33B570F6DF55C8D6DD6313A0 /* ConnectionReadinessService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionReadinessService.swift; sourceTree = "<group>"; };
 		3BAA19941D3026DCAA54EC94 /* FullscreenDeckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenDeckView.swift; sourceTree = "<group>"; };
 		3DDBB72D105D2E9FEDB1BA32 /* TrustedDeviceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedDeviceStore.swift; sourceTree = "<group>"; };
 		46CAE8A06C795AFDD73CC38A /* DeskBoardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskBoardApp.swift; sourceTree = "<group>"; };
+		63C9A7CE2A5CEAF7F6F67697 /* ConnectionReadiness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionReadiness.swift; sourceTree = "<group>"; };
 		694C09EE73BB00D1E7AA38C9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		69B3F407D05332EF85FC3A82 /* DeskBoard.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = DeskBoard.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6CBE0EE83023CE06DBE3B2E9 /* IntentControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentControlsView.swift; sourceTree = "<group>"; };
@@ -167,6 +172,7 @@
 		E8ABCB80880E8496EE3E87AB /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		E917D7DF095017B455B5B47D /* RoleSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoleSelectionView.swift; sourceTree = "<group>"; };
 		F3E7B462F833C22CC81EE7D1 /* MediaControlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaControlService.swift; sourceTree = "<group>"; };
+		FE2CDFA0B7087EBBF876C21A /* ConnectionReadinessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionReadinessTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -279,6 +285,7 @@
 			children = (
 				29379A2600DAD046CB33CA62 /* ButtonActionTests.swift */,
 				AC300AF9757CF2E35F29479F /* CommandMessageTests.swift */,
+				FE2CDFA0B7087EBBF876C21A /* ConnectionReadinessTests.swift */,
 				17CCEF3B3488D0D17EC0FAB7 /* DashboardModelTests.swift */,
 			);
 			path = DeskBoardTests;
@@ -320,6 +327,7 @@
 			children = (
 				AEA3DEDA61429A208D8C1897 /* ActionEngine.swift */,
 				755B462B261DFF0D6D5F3FB1 /* BackupService.swift */,
+				33B570F6DF55C8D6DD6313A0 /* ConnectionReadinessService.swift */,
 				7B8D28940C5867E1D21E0D0A /* ExecutionLogStore.swift */,
 				19E4AB6DB62BA49725531E72 /* ExecutionRouter.swift */,
 				A711818E2DB8F4B710EDD84B /* HTTPActionService.swift */,
@@ -468,6 +476,7 @@
 				0FB650998C6A688CFDEA00D7 /* ButtonAction.swift */,
 				E16C86FBEAA80ABF01B09C90 /* ButtonState.swift */,
 				1031EF7D369C44C4E1956153 /* CommandMessage.swift */,
+				63C9A7CE2A5CEAF7F6F67697 /* ConnectionReadiness.swift */,
 				DB6B68D62474E21484E064BD /* Dashboard.swift */,
 				866D0F6562BF99D770ECFF7B /* ExecutionLog.swift */,
 				70EE7F2CDE9D90AD430C6237 /* ExecutionPolicies.swift */,
@@ -654,6 +663,8 @@
 				68367FECE604C5432AD32179 /* ButtonState.swift in Sources */,
 				F2ED350861EECBEDF2E4FFBB /* CommandEncoder.swift in Sources */,
 				DB33E8DD5C2D02784400B725 /* CommandMessage.swift in Sources */,
+				C8E7D3D5D5D2BFA9D68CE1E9 /* ConnectionReadiness.swift in Sources */,
+				D47629B0BABCD0E53AC04374 /* ConnectionReadinessService.swift in Sources */,
 				31AC47CFCFABC66581A8856A /* Dashboard.swift in Sources */,
 				61B58F9735FE58844BCEA895 /* DashboardGridView.swift in Sources */,
 				E6D4B811E3C413953D5AA613 /* DashboardStore.swift in Sources */,
@@ -701,6 +712,7 @@
 			files = (
 				8637FE17E8E5DF33AAF50453 /* ButtonActionTests.swift in Sources */,
 				511BD28D0E37503A7A951959 /* CommandMessageTests.swift in Sources */,
+				102E59AC647E42CA633BC83B /* ConnectionReadinessTests.swift in Sources */,
 				D6AEF20808B169F172D80AA3 /* DashboardModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -746,16 +758,16 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.DeskBoardControls;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
+					PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.DeskBoardControls;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
+					SDKROOT = iphoneos;
+					SKIP_INSTALL = YES;
+					SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+					SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+					TARGETED_DEVICE_FAMILY = "1,2";
+				};
+				name = Debug;
 		};
 		61A922904D2369D079DACBB8 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -769,7 +781,7 @@
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
 				INFOPLIST_FILE = Resources/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -795,7 +807,7 @@
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
 				INFOPLIST_FILE = Resources/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -823,16 +835,15 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.DeskBoardControls;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Osize";
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
+					PRODUCT_BUNDLE_IDENTIFIER = app.rork.qk8s5pz3bbw4sk3nw0gmq.DeskBoardControls;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_DESKBOARDCONTROLS)";
+					SDKROOT = iphoneos;
+					SKIP_INSTALL = YES;
+					SWIFT_OPTIMIZATION_LEVEL = "-Osize";
+					TARGETED_DEVICE_FAMILY = "1,2";
+				};
+				name = Release;
 		};
 		9622EFF24A0758FA42637FD5 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -841,7 +852,7 @@
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -901,7 +912,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "-warn-concurrency";
@@ -921,7 +932,7 @@
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -987,7 +998,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1045,7 +1056,7 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		7F38010FA77A196385A074B6 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = https://github.com/kishikawakatsumi/KeychainAccess;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 4.2.2;

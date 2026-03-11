@@ -24,6 +24,8 @@ final class SettingsViewModel: ObservableObject {
     @Published var exportData: Data?
     @Published var showImportResult = false
     @Published var importResultMessage = ""
+    @Published var pushGatewayValidationMessage: String?
+    @Published var relayValidationMessage: String?
 
     private let appState: AppState
     private let backupService = BackupService.shared
@@ -74,13 +76,43 @@ final class SettingsViewModel: ObservableObject {
     func savePushWakeEnabled(_ enabled: Bool) {
         pushWakeEnabled = enabled
         AppConfiguration.pushWakeEnabled = enabled
+        if !enabled {
+            pushGatewayValidationMessage = nil
+            return
+        }
         syncPushRegistration()
     }
 
     func savePushGatewayURL() {
-        AppConfiguration.pushGatewayURL = pushGatewayURL.trimmed
+        let trimmed = pushGatewayURL.trimmed
+        if ConnectionReadinessService.isPlaceholderURL(trimmed) {
+            AppConfiguration.pushGatewayURL = ""
+            pushGatewayURL = ""
+            pushGatewayValidationMessage = "Enter your real gateway URL. Placeholder links are not allowed."
+            return
+        }
+        if !trimmed.isEmpty, URL(string: trimmed) == nil {
+            pushGatewayValidationMessage = "Gateway URL is invalid."
+            return
+        }
+        pushGatewayValidationMessage = nil
+        AppConfiguration.pushGatewayURL = trimmed
         pushGatewayURL = AppConfiguration.pushGatewayURL
         syncPushRegistration()
+        Task {
+            let readiness = await ConnectionReadinessService.shared.evaluate()
+            await MainActor.run {
+                if let blockingCode = readiness.blockingErrorCode {
+                    pushGatewayValidationMessage = "Gateway check failed: \(blockingCode)"
+                } else if readiness.gatewayConfigured && !readiness.gatewayReachable {
+                    pushGatewayValidationMessage = "Gateway is configured but unreachable."
+                } else if let topicMatch = readiness.apnsTopicMatchesBundle, !topicMatch {
+                    pushGatewayValidationMessage = "Gateway APNs topic does not match this app bundle ID."
+                } else {
+                    pushGatewayValidationMessage = nil
+                }
+            }
+        }
     }
 
     func savePushGatewayAPIKey() {
@@ -96,7 +128,19 @@ final class SettingsViewModel: ObservableObject {
     }
 
     func saveBackgroundRelayURL() {
-        AppConfiguration.backgroundRelayURL = backgroundRelayURL.trimmed
+        let trimmed = backgroundRelayURL.trimmed
+        if ConnectionReadinessService.isPlaceholderURL(trimmed) {
+            AppConfiguration.backgroundRelayURL = ""
+            backgroundRelayURL = ""
+            relayValidationMessage = "Enter your real relay URL."
+            return
+        }
+        if !trimmed.isEmpty, URL(string: trimmed) == nil {
+            relayValidationMessage = "Relay URL is invalid."
+            return
+        }
+        relayValidationMessage = nil
+        AppConfiguration.backgroundRelayURL = trimmed
         backgroundRelayURL = AppConfiguration.backgroundRelayURL
     }
 
@@ -137,7 +181,11 @@ final class SettingsViewModel: ObservableObject {
                     defaultColumns: 3,
                     autoReconnect: autoReconnect,
                     timeoutSeconds: 10,
-                    retryCount: 1
+                    retryCount: 1,
+                    pushWakeEnabled: pushWakeEnabled,
+                    pushGatewayURL: pushGatewayURL.trimmed,
+                    backgroundRelayEnabled: backgroundRelayEnabled,
+                    backgroundRelayURL: backgroundRelayURL.trimmed
                 )
             )
             showExportPicker = true
@@ -164,6 +212,9 @@ final class SettingsViewModel: ObservableObject {
                 for dashboard in backup.dashboards {
                     appState.addDashboard(dashboard)
                 }
+                if let settings = backup.settings {
+                    applyImportedSettings(settings)
+                }
                 importResultMessage = "Imported \(backup.dashboards.count) dashboard(s) from \(backup.deviceName)"
                 showImportResult = true
             } catch {
@@ -189,8 +240,46 @@ final class SettingsViewModel: ObservableObject {
     private func syncPushRegistration() {
         let role = appState.deviceRole
         let name = appState.deviceName
+        guard AppConfiguration.pushWakeEnabled else {
+            pushGatewayValidationMessage = nil
+            return
+        }
+        guard role != .unset else {
+            pushGatewayValidationMessage = nil
+            return
+        }
         Task {
-            await PushWakeService.shared.registerCurrentDevice(role: role, deviceName: name)
+            let result = await PushWakeService.shared.registerCurrentDevice(role: role, deviceName: name)
+            await MainActor.run {
+                if result.success {
+                    if pushGatewayValidationMessage?.hasPrefix("Push registration failed:") == true {
+                        pushGatewayValidationMessage = nil
+                    }
+                } else {
+                    pushGatewayValidationMessage = "Push registration failed: \(result.errorCode ?? "unknown_error")"
+                }
+            }
+        }
+    }
+
+    private func applyImportedSettings(_ settings: BackupSettings) {
+        saveHaptic(settings.hapticEnabled)
+        saveSilentReceiver(settings.silentReceiver)
+        saveAutoReconnect(settings.autoReconnect)
+
+        if let pushWakeEnabled = settings.pushWakeEnabled {
+            savePushWakeEnabled(pushWakeEnabled)
+        }
+        if let gatewayURL = settings.pushGatewayURL {
+            pushGatewayURL = gatewayURL
+            savePushGatewayURL()
+        }
+        if let relayEnabled = settings.backgroundRelayEnabled {
+            saveBackgroundRelayEnabled(relayEnabled)
+        }
+        if let relayURL = settings.backgroundRelayURL {
+            backgroundRelayURL = relayURL
+            saveBackgroundRelayURL()
         }
     }
 }
