@@ -53,6 +53,7 @@ final class ButtonActionTests: XCTestCase {
         XCTAssertEqual(ButtonAction.openURL(url: "").category,      .general)
         XCTAssertEqual(ButtonAction.sendText(text: "").category,    .general)
         XCTAssertEqual(ButtonAction.openDeepLink(url: "").category, .general)
+        XCTAssertEqual(ButtonAction.typeText(text: "").category,    .general)
     }
 
     func testKeyboardCategory() {
@@ -116,6 +117,28 @@ final class ButtonActionTests: XCTestCase {
         XCTAssertTrue(ButtonAction.openURL(url: "https://apple.com").requiresForegroundOnIOSReceiver)
         XCTAssertTrue(ButtonAction.openApp(appID: "youtube").requiresForegroundOnIOSReceiver)
         XCTAssertTrue(ButtonAction.runShortcut(name: "Test").requiresForegroundOnIOSReceiver)
+    }
+
+    func testRelayKindsForNewMacActions() {
+        XCTAssertEqual(ButtonAction.openApp(appID: "xcode").relayKind, "open_app")
+        XCTAssertEqual(ButtonAction.appSwitchNext.relayKind, "app_switch_next")
+        XCTAssertEqual(ButtonAction.appSwitchPrevious.relayKind, "app_switch_previous")
+        XCTAssertEqual(ButtonAction.closeWindow.relayKind, "close_window")
+        XCTAssertEqual(ButtonAction.quitFrontApp.relayKind, "quit_front_app")
+        XCTAssertEqual(ButtonAction.minimizeWindow.relayKind, "minimize_window")
+        XCTAssertEqual(ButtonAction.missionControl.relayKind, "mission_control")
+        XCTAssertEqual(ButtonAction.showDesktop.relayKind, "show_desktop")
+        XCTAssertEqual(ButtonAction.moveSpaceLeft.relayKind, "move_space_left")
+        XCTAssertEqual(ButtonAction.moveSpaceRight.relayKind, "move_space_right")
+    }
+
+    func testDangerousActionClassification() {
+        XCTAssertTrue(ButtonAction.forceQuitApp.isDangerousAction)
+        XCTAssertTrue(ButtonAction.emptyTrash.isDangerousAction)
+        XCTAssertTrue(ButtonAction.sleepDisplay.isDangerousAction)
+        XCTAssertTrue(ButtonAction.lockScreen.isDangerousAction)
+        XCTAssertTrue(ButtonAction.quitFrontApp.isDangerousAction)
+        XCTAssertFalse(ButtonAction.appSwitchNext.isDangerousAction)
     }
 
     func testMacroForegroundRequirementPropagation() {

@@ -29,6 +29,67 @@ final class DashboardModelTests: XCTestCase {
         XCTAssertEqual(page.title, "Page")
         XCTAssertTrue(page.buttons.isEmpty)
         XCTAssertEqual(page.layoutColumns, 3)
+        XCTAssertEqual(page.layoutMode, .grid)
+        XCTAssertFalse(page.knobs.isEmpty)
+    }
+
+    func testDashboardPageLegacyDecodeCompatibility() throws {
+        let legacyPage: [String: Any] = [
+            "id": UUID().uuidString,
+            "title": "Legacy",
+            "buttons": [],
+            "layoutColumns": 4
+        ]
+        let data = try JSONSerialization.data(withJSONObject: legacyPage)
+        let decoded = try JSONDecoder().decode(DashboardPage.self, from: data)
+        XCTAssertEqual(decoded.title, "Legacy")
+        XCTAssertEqual(decoded.layoutColumns, 4)
+        XCTAssertEqual(decoded.layoutMode, .grid)
+        XCTAssertFalse(decoded.knobs.isEmpty)
+    }
+
+    func testDashboardPageFreeformRoundTrip() throws {
+        let frame = DeckButtonFrame(x: 40, y: 55, width: 180, height: 130, zIndex: 4)
+        let button = DeskButton(
+            title: "Free Button",
+            icon: "star.fill",
+            action: .typeText(text: "hello"),
+            buttonFrame: frame,
+            buttonShape: .capsule,
+            sizePreset: .custom,
+            dragLocked: true
+        )
+        let knob = DeckKnobConfig(
+            label: "NAV",
+            size: 170,
+            stepThreshold: 12,
+            hapticStyle: .light,
+            clockwiseAction: .appSwitchNext,
+            counterClockwiseAction: .appSwitchPrevious,
+            pressAction: .missionControl,
+            longPressAction: .showDesktop,
+            placement: .trailing
+        )
+        let page = DashboardPage(
+            title: "Freeform",
+            buttons: [button],
+            layoutColumns: 3,
+            layoutMode: .freeform,
+            knobs: [knob]
+        )
+
+        let data = try JSONEncoder().encode(page)
+        let decoded = try JSONDecoder().decode(DashboardPage.self, from: data)
+        let decodedButton = try XCTUnwrap(decoded.buttons.first)
+        let decodedFrame = try XCTUnwrap(decodedButton.buttonFrame)
+        let decodedKnob = try XCTUnwrap(decoded.knobs.first)
+        XCTAssertEqual(decoded.layoutMode, .freeform)
+        XCTAssertEqual(decodedFrame.width, 180, accuracy: 0.01)
+        XCTAssertEqual(decodedButton.buttonShape, .capsule)
+        XCTAssertEqual(decodedButton.sizePreset, .custom)
+        XCTAssertEqual(decodedButton.dragLocked, true)
+        XCTAssertEqual(decodedKnob.label, "NAV")
+        XCTAssertEqual(decodedKnob.size, 170, accuracy: 0.01)
     }
 
     // MARK: - DeskButton
@@ -55,6 +116,22 @@ final class DashboardModelTests: XCTestCase {
         XCTAssertEqual(decoded.id, button.id)
         XCTAssertEqual(decoded.title, button.title)
         XCTAssertEqual(decoded.colorHex, button.colorHex)
+    }
+
+    func testDeskButtonLegacyDecodeCompatibility() throws {
+        let legacy: [String: Any] = [
+            "id": UUID().uuidString,
+            "title": "Legacy",
+            "icon": "star.fill",
+            "colorHex": "#007AFF",
+            "position": 0
+        ]
+        let data = try JSONSerialization.data(withJSONObject: legacy)
+        let decoded = try JSONDecoder().decode(DeskButton.self, from: data)
+        XCTAssertNil(decoded.buttonFrame)
+        XCTAssertEqual(decoded.buttonShape, .roundedRectangle)
+        XCTAssertEqual(decoded.sizePreset, .medium)
+        XCTAssertFalse(decoded.dragLocked)
     }
 
     // MARK: - Color Extension

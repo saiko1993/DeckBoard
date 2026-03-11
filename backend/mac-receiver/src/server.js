@@ -67,6 +67,7 @@ const ACTION_CAPABILITIES = [
   'open_url',
   'open_deep_link',
   'send_text',
+  'type_text',
   'open_app',
   'run_shortcut',
   'run_script',
@@ -92,6 +93,15 @@ const ACTION_CAPABILITIES = [
   'media_volume_up',
   'media_volume_down',
   'media_mute',
+  'app_switch_next',
+  'app_switch_previous',
+  'close_window',
+  'quit_front_app',
+  'minimize_window',
+  'mission_control',
+  'show_desktop',
+  'move_space_left',
+  'move_space_right',
   'macro'
 ];
 
@@ -99,6 +109,7 @@ const CAPABILITY_METADATA = {
   open_url: { category: 'general', foregroundRequired: false },
   open_deep_link: { category: 'general', foregroundRequired: false },
   send_text: { category: 'general', foregroundRequired: false },
+  type_text: { category: 'general', foregroundRequired: false },
   open_app: { category: 'apps', foregroundRequired: false },
   run_shortcut: { category: 'shortcuts', foregroundRequired: false },
   run_script: { category: 'shortcuts', foregroundRequired: false },
@@ -124,6 +135,15 @@ const CAPABILITY_METADATA = {
   media_volume_up: { category: 'media', foregroundRequired: false },
   media_volume_down: { category: 'media', foregroundRequired: false },
   media_mute: { category: 'media', foregroundRequired: false },
+  app_switch_next: { category: 'shortcuts', foregroundRequired: false },
+  app_switch_previous: { category: 'shortcuts', foregroundRequired: false },
+  close_window: { category: 'device', foregroundRequired: false },
+  quit_front_app: { category: 'device', foregroundRequired: false },
+  minimize_window: { category: 'device', foregroundRequired: false },
+  mission_control: { category: 'device', foregroundRequired: false },
+  show_desktop: { category: 'device', foregroundRequired: false },
+  move_space_left: { category: 'device', foregroundRequired: false },
+  move_space_right: { category: 'device', foregroundRequired: false },
   macro: { category: 'macro', foregroundRequired: false }
 };
 
@@ -275,6 +295,16 @@ async function executeAction(action) {
       return { ok: true, detail: 'Copied text to clipboard' };
     }
 
+    case 'type_text': {
+      const value = String(action.value || '').replace(/\n/g, ' ').trim();
+      if (!value) {
+        throw new Error('Missing text value');
+      }
+      const escaped = value.replace(/"/g, '\\"');
+      await runAppleScript(`tell application "System Events" to keystroke "${escaped}"`);
+      return { ok: true, detail: 'Typed text' };
+    }
+
     case 'open_app': {
       const appID = String(action.appID || '').trim();
       if (!appID) {
@@ -351,6 +381,51 @@ async function executeAction(action) {
       const script = buildKeystrokeScript(action.key, action.modifiers);
       await runAppleScript(script);
       return { ok: true, detail: 'Sent keyboard shortcut' };
+    }
+
+    case 'app_switch_next': {
+      await runAppleScript('tell application "System Events" to key code 48 using {command down}');
+      return { ok: true, detail: 'Switched to next app' };
+    }
+
+    case 'app_switch_previous': {
+      await runAppleScript('tell application "System Events" to key code 48 using {command down, shift down}');
+      return { ok: true, detail: 'Switched to previous app' };
+    }
+
+    case 'close_window': {
+      await runAppleScript('tell application "System Events" to key code 13 using {command down}');
+      return { ok: true, detail: 'Closed window' };
+    }
+
+    case 'quit_front_app': {
+      await runAppleScript('tell application "System Events" to key code 12 using {command down}');
+      return { ok: true, detail: 'Quit front app command sent' };
+    }
+
+    case 'minimize_window': {
+      await runAppleScript('tell application "System Events" to key code 46 using {command down}');
+      return { ok: true, detail: 'Minimized window' };
+    }
+
+    case 'mission_control': {
+      await runAppleScript('tell application "System Events" to key code 126 using {control down}');
+      return { ok: true, detail: 'Mission Control' };
+    }
+
+    case 'show_desktop': {
+      await runAppleScript('tell application "System Events" to key code 103');
+      return { ok: true, detail: 'Show Desktop' };
+    }
+
+    case 'move_space_left': {
+      await runAppleScript('tell application "System Events" to key code 123 using {control down}');
+      return { ok: true, detail: 'Moved to left space' };
+    }
+
+    case 'move_space_right': {
+      await runAppleScript('tell application "System Events" to key code 124 using {control down}');
+      return { ok: true, detail: 'Moved to right space' };
     }
 
     case 'toggle_dark_mode': {

@@ -14,11 +14,15 @@ final class ButtonEditorViewModel: ObservableObject {
 
     @Published var urlText: String = ""
     @Published var textPayload: String = ""
+    @Published var appID: String = ""
 
     @Published var shortcutKey: String = ""
     @Published var shortcutModifiers: [String] = []
     @Published var shortcutName: String = ""
     @Published var iconURL: String = ""
+    @Published var buttonShape: DeskButtonShape = .roundedRectangle
+    @Published var sizePreset: DeskButtonSizePreset = .medium
+    @Published var dragLocked: Bool = false
 
     @Published var confirmBeforeExecute: Bool = false
     @Published var cooldownSeconds: Double = 0
@@ -53,6 +57,9 @@ final class ButtonEditorViewModel: ObservableObject {
         isEnabled = button.isEnabled
         selectedAction = button.action
         iconURL = button.iconURL ?? ""
+        buttonShape = button.buttonShape
+        sizePreset = button.sizePreset
+        dragLocked = button.dragLocked
         confirmBeforeExecute = button.config.confirmBeforeExecute
         cooldownSeconds = button.config.cooldownSeconds
         cornerRadius = button.config.cornerRadius
@@ -70,9 +77,13 @@ final class ButtonEditorViewModel: ObservableObject {
             urlText = url
         case .sendText(let text):
             textPayload = text
+        case .openApp(let appID):
+            self.appID = appID
         case .keyboardShortcut(let mods, let key):
             shortcutModifiers = mods
             shortcutKey = key
+        case .typeText(let text):
+            textPayload = text
         case .runShortcut(let name):
             shortcutName = name
         case .runScript(let name):
@@ -84,6 +95,7 @@ final class ButtonEditorViewModel: ObservableObject {
 
     func autoFillFromApp(appID: String) {
         guard let app = AppCatalog.app(withID: appID) else { return }
+        self.appID = appID
         if title.trimmed.isEmpty {
             title = app.name
         }
@@ -117,6 +129,9 @@ final class ButtonEditorViewModel: ObservableObject {
             position: position,
             isEnabled: isEnabled,
             iconURL: iconURL.trimmed.isEmpty ? nil : iconURL.trimmed,
+            buttonShape: buttonShape,
+            sizePreset: sizePreset,
+            dragLocked: dragLocked,
             config: config
         )
     }
@@ -133,6 +148,11 @@ final class ButtonEditorViewModel: ObservableObject {
             return urlText.trimmed.isEmpty ? .none : .openDeepLink(url: urlText.trimmed)
         case .sendText:
             return textPayload.trimmed.isEmpty ? .none : .sendText(text: textPayload.trimmed)
+        case .typeText:
+            return textPayload.trimmed.isEmpty ? .none : .typeText(text: textPayload.trimmed)
+        case .openApp(let currentID):
+            let resolvedAppID = appID.trimmed.isEmpty ? currentID.trimmed : appID.trimmed
+            return resolvedAppID.isEmpty ? .none : .openApp(appID: resolvedAppID)
         case .keyboardShortcut:
             return shortcutKey.trimmed.isEmpty ? .none : .keyboardShortcut(modifiers: shortcutModifiers, key: shortcutKey.trimmed)
         case .runShortcut:

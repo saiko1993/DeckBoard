@@ -364,6 +364,9 @@ final class AppState: ObservableObject {
             UIPasteboard.general.string = text
             return .success(detail: "Copied to clipboard")
 
+        case .typeText:
+            return .failure(error: "Type text is not supported on iOS receiver")
+
         case .mediaVolumeUp:
             media.volumeUp()
             return .success(detail: "Volume up")
@@ -469,6 +472,33 @@ final class AppState: ObservableObject {
 
         case .lockScreen:
             return .failure(error: "Lock screen command is not supported on iOS receiver")
+
+        case .appSwitchNext:
+            return .failure(error: "App switch is not supported on iOS receiver")
+
+        case .appSwitchPrevious:
+            return .failure(error: "App switch is not supported on iOS receiver")
+
+        case .closeWindow:
+            return .failure(error: "Close window is not supported on iOS receiver")
+
+        case .quitFrontApp:
+            return .failure(error: "Quit app is not supported on iOS receiver")
+
+        case .minimizeWindow:
+            return .failure(error: "Minimize window is not supported on iOS receiver")
+
+        case .missionControl:
+            return .failure(error: "Mission Control is not supported on iOS receiver")
+
+        case .showDesktop:
+            return .failure(error: "Show desktop is not supported on iOS receiver")
+
+        case .moveSpaceLeft:
+            return .failure(error: "Move space is not supported on iOS receiver")
+
+        case .moveSpaceRight:
+            return .failure(error: "Move space is not supported on iOS receiver")
 
         case .macro(let actions):
             for (idx, nested) in actions.enumerated() {
@@ -1243,6 +1273,9 @@ private nonisolated struct RelayActionPayload: Codable, Sendable {
         case .sendText(let text):
             self = .init(kind: "send_text", value: text, appID: nil, modifiers: nil, key: nil, actions: nil)
 
+        case .typeText(let text):
+            self = .init(kind: "type_text", value: text, appID: nil, modifiers: nil, key: nil, actions: nil)
+
         case .mediaPlay:
             self = .init(kind: "media_play", value: nil, appID: nil, modifiers: nil, key: nil, actions: nil)
 
@@ -1323,6 +1356,33 @@ private nonisolated struct RelayActionPayload: Codable, Sendable {
 
         case .sleepDisplay:
             self = .init(kind: "sleep_display", value: nil, appID: nil, modifiers: nil, key: nil, actions: nil)
+
+        case .appSwitchNext:
+            self = .init(kind: "app_switch_next", value: nil, appID: nil, modifiers: nil, key: nil, actions: nil)
+
+        case .appSwitchPrevious:
+            self = .init(kind: "app_switch_previous", value: nil, appID: nil, modifiers: nil, key: nil, actions: nil)
+
+        case .closeWindow:
+            self = .init(kind: "close_window", value: nil, appID: nil, modifiers: nil, key: nil, actions: nil)
+
+        case .quitFrontApp:
+            self = .init(kind: "quit_front_app", value: nil, appID: nil, modifiers: nil, key: nil, actions: nil)
+
+        case .minimizeWindow:
+            self = .init(kind: "minimize_window", value: nil, appID: nil, modifiers: nil, key: nil, actions: nil)
+
+        case .missionControl:
+            self = .init(kind: "mission_control", value: nil, appID: nil, modifiers: nil, key: nil, actions: nil)
+
+        case .showDesktop:
+            self = .init(kind: "show_desktop", value: nil, appID: nil, modifiers: nil, key: nil, actions: nil)
+
+        case .moveSpaceLeft:
+            self = .init(kind: "move_space_left", value: nil, appID: nil, modifiers: nil, key: nil, actions: nil)
+
+        case .moveSpaceRight:
+            self = .init(kind: "move_space_right", value: nil, appID: nil, modifiers: nil, key: nil, actions: nil)
 
         case .macro(let actions):
             self = .init(

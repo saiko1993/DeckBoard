@@ -10,6 +10,8 @@ struct DiagnosticsView: View {
     @State private var isCheckingRelayCapabilities = false
     @State private var relayCapabilitiesResult: String?
     @State private var relayCapabilities: [String] = []
+    @State private var relayUsableCapabilities: [String] = []
+    @State private var relayBlockedCapabilities: [String] = []
 
     var body: some View {
         List {
@@ -154,6 +156,30 @@ struct DiagnosticsView: View {
                         .padding(.vertical, 4)
                     }
                 }
+
+                if !relayUsableCapabilities.isEmpty || !relayBlockedCapabilities.isEmpty {
+                    InfoRow(label: "Usable", value: "\(relayUsableCapabilities.count)")
+                    InfoRow(label: "Unmapped", value: "\(relayBlockedCapabilities.count)")
+                }
+
+                if !relayBlockedCapabilities.isEmpty {
+                    Text("These relay capabilities are not yet mapped in the button builder:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(relayBlockedCapabilities, id: \.self) { capability in
+                                Text(capability)
+                                    .font(.caption2.monospaced())
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 5)
+                                    .background(Color.orange.opacity(0.15))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
             }
 
             if appState.deviceRole == .sender {
@@ -244,6 +270,8 @@ struct DiagnosticsView: View {
         isCheckingRelayCapabilities = true
         relayCapabilitiesResult = nil
         relayCapabilities = []
+        relayUsableCapabilities = []
+        relayBlockedCapabilities = []
 
         Task {
             defer { isCheckingRelayCapabilities = false }
@@ -268,11 +296,28 @@ struct DiagnosticsView: View {
                 let payload = try JSONDecoder().decode(RelayCapabilitiesResponse.self, from: data)
                 relayCapabilitiesResult = "✓ Relay online, \(payload.capabilities.count) capabilities"
                 relayCapabilities = payload.capabilities.sorted()
+                relayUsableCapabilities = payload.capabilities.filter(Self.knownActionCapabilitySet.contains).sorted()
+                relayBlockedCapabilities = payload.capabilities.filter { !Self.knownActionCapabilitySet.contains($0) }.sorted()
             } catch {
                 relayCapabilitiesResult = "Relay check failed: \(error.localizedDescription)"
             }
         }
     }
+
+    private static let knownActionCapabilitySet: Set<String> = [
+        "open_url", "open_deep_link", "send_text", "type_text",
+        "open_app", "run_shortcut", "run_script", "keyboard_shortcut",
+        "toggle_dark_mode", "screenshot", "screen_record", "sleep_display",
+        "lock_screen", "open_terminal", "force_quit_app", "empty_trash",
+        "toggle_dnd", "presentation_next", "presentation_previous",
+        "presentation_start", "presentation_end",
+        "media_play", "media_pause", "media_play_pause", "media_next",
+        "media_previous", "media_volume_up", "media_volume_down",
+        "media_mute", "app_switch_next", "app_switch_previous",
+        "close_window", "quit_front_app", "minimize_window",
+        "mission_control", "show_desktop", "move_space_left", "move_space_right",
+        "macro"
+    ]
 }
 
 private struct RelayCapabilitiesResponse: Codable {

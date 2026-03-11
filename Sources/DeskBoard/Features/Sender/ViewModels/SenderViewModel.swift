@@ -140,6 +140,25 @@ final class SenderViewModel: ObservableObject {
         activePage = updated.pages[pageIdx]
     }
 
+    func setLayoutMode(_ mode: DashboardLayoutMode, for page: DashboardPage, in dashboard: Dashboard) {
+        var updated = dashboard
+        guard let pageIdx = updated.pages.firstIndex(where: { $0.id == page.id }) else { return }
+        updated.pages[pageIdx].layoutMode = mode
+        if mode == .freeform {
+            let columns = max(2, updated.pages[pageIdx].layoutColumns)
+            updated.pages[pageIdx].buttons = updated.pages[pageIdx].buttons.enumerated().map { index, button in
+                var copy = button
+                if copy.buttonFrame == nil {
+                    copy.buttonFrame = defaultFrame(for: index, columns: columns)
+                }
+                return copy
+            }
+        }
+        appState.updateDashboard(updated)
+        activeDashboard = updated
+        activePage = updated.pages[pageIdx]
+    }
+
     // MARK: - Button CRUD
 
     func addButton(_ button: DeskButton, to page: DashboardPage, in dashboard: Dashboard) {
@@ -164,6 +183,18 @@ final class SenderViewModel: ObservableObject {
         activePage = updated.pages[pageIdx]
     }
 
+    func updateButtonFrame(
+        _ frame: DeckButtonFrame,
+        for button: DeskButton,
+        in page: DashboardPage,
+        dashboard: Dashboard
+    ) {
+        var updatedButton = button
+        updatedButton.buttonFrame = frame
+        updatedButton.sizePreset = .custom
+        updateButton(updatedButton, in: page, dashboard: dashboard)
+    }
+
     func deleteButton(_ button: DeskButton, from page: DashboardPage, in dashboard: Dashboard) {
         var updated = dashboard
         guard let pageIdx = updated.pages.firstIndex(where: { $0.id == page.id }) else { return }
@@ -180,5 +211,28 @@ final class SenderViewModel: ObservableObject {
         appState.updateDashboard(updated)
         activeDashboard = updated
         activePage = updated.pages[pageIdx]
+    }
+
+    func updateKnobs(
+        _ knobs: [DeckKnobConfig],
+        for page: DashboardPage,
+        in dashboard: Dashboard
+    ) {
+        var updated = dashboard
+        guard let pageIdx = updated.pages.firstIndex(where: { $0.id == page.id }) else { return }
+        updated.pages[pageIdx].knobs = knobs
+        appState.updateDashboard(updated)
+        activeDashboard = updated
+        activePage = updated.pages[pageIdx]
+    }
+
+    private func defaultFrame(for index: Int, columns: Int) -> DeckButtonFrame {
+        let spacing: Double = 12
+        let size: Double = 104
+        let row = index / max(columns, 1)
+        let col = index % max(columns, 1)
+        let x = Double(col) * (size + spacing) + spacing
+        let y = Double(row) * (size + spacing) + spacing
+        return DeckButtonFrame(x: x, y: y, width: size, height: size, zIndex: Double(index))
     }
 }

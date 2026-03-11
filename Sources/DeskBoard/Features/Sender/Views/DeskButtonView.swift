@@ -4,6 +4,7 @@ struct DeskButtonView: View {
     let button: DeskButton
     let isEditMode: Bool
     let executionState: ButtonExecutionState
+    var enforceAspectRatio: Bool = true
     let onTap: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
@@ -52,6 +53,33 @@ struct DeskButtonView: View {
     }
 
     private var buttonLabel: some View {
+        Group {
+            if enforceAspectRatio {
+                contentBody.aspectRatio(1, contentMode: .fit)
+            } else {
+                contentBody.frame(maxHeight: .infinity)
+            }
+        }
+        .padding(10)
+        .background(
+            Group {
+                switch button.buttonShape {
+                case .roundedRectangle:
+                    RoundedRectangle(cornerRadius: button.config.cornerRadius, style: .continuous)
+                        .fill(button.color)
+                case .capsule:
+                    Capsule()
+                        .fill(button.color)
+                case .circle:
+                    Circle()
+                        .fill(button.color)
+                }
+            }
+            .shadow(color: stateShadowColor, radius: 7, y: 3)
+        )
+    }
+
+    private var contentBody: some View {
         VStack(spacing: 6) {
             if let url = button.resolvedIconURL {
                 Color.clear
@@ -97,13 +125,6 @@ struct DeskButtonView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: button.config.cornerRadius, style: .continuous)
-                .fill(button.color)
-                .shadow(color: stateShadowColor, radius: 7, y: 3)
-        )
     }
 
     private var editOverlay: some View {

@@ -117,6 +117,9 @@ final class ActionEngine: ObservableObject {
             UIPasteboard.general.string = text
             return .success(detail: "Copied to clipboard")
 
+        case .typeText:
+            return .failure(error: "Type text is not supported on iOS receiver")
+
         case .mediaVolumeUp:
             media.volumeUp()
             return .success(detail: "Volume Up")
@@ -227,6 +230,33 @@ final class ActionEngine: ObservableObject {
         case .sleepDisplay:
             let slept = await media.sleepDisplay()
             return slept ? .success(detail: "Display sleeping") : .failure(error: "Could not sleep display")
+
+        case .appSwitchNext:
+            return .failure(error: "App switch is not supported on iOS receiver")
+
+        case .appSwitchPrevious:
+            return .failure(error: "App switch is not supported on iOS receiver")
+
+        case .closeWindow:
+            return .failure(error: "Close window is not supported on iOS receiver")
+
+        case .quitFrontApp:
+            return .failure(error: "Quit app is not supported on iOS receiver")
+
+        case .minimizeWindow:
+            return .failure(error: "Minimize window is not supported on iOS receiver")
+
+        case .missionControl:
+            return .failure(error: "Mission Control is not supported on iOS receiver")
+
+        case .showDesktop:
+            return .failure(error: "Show desktop is not supported on iOS receiver")
+
+        case .moveSpaceLeft:
+            return .failure(error: "Move space is not supported on iOS receiver")
+
+        case .moveSpaceRight:
+            return .failure(error: "Move space is not supported on iOS receiver")
 
         case .macro(let actions):
             return await executeMacro(actions)
