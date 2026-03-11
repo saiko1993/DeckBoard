@@ -51,7 +51,7 @@ struct IntentControlsView: View {
 
             Section("Notes") {
                 Text("These actions are exposed to App Intents, widgets, and Control Center controls.")
-                Text("When this device is Sender and disconnected, actions are queued until connection resumes.")
+                Text("When this device is Sender and disconnected, actions are queued unless direct Mac Relay mode is configured.")
             }
             .font(.caption)
             .foregroundStyle(.secondary)

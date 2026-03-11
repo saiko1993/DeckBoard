@@ -60,7 +60,10 @@ private struct _SenderViewBody: View {
         } else if let dashboard = viewModel.activeDashboard,
                   let page = viewModel.activePage {
             VStack(spacing: 0) {
-                ConnectionBanner(state: appState.connectionState)
+                ConnectionBanner(
+                    state: appState.connectionState,
+                    directRelayReady: appState.isDirectRelayReadyForSender
+                )
                 SenderExecutionStrip(states: viewModel.buttonExecutionStates)
 
                 if dashboard.pages.count > 1 {

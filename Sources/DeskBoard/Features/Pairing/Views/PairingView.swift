@@ -76,6 +76,17 @@ private struct _PairingViewBody: View {
                 viewModel.connectTo(peer: peer)
             }
         }
+        Section("Mac Relay") {
+            HStack {
+                Image(systemName: AppConfiguration.backgroundRelayEnabled ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .foregroundStyle(AppConfiguration.backgroundRelayEnabled ? .green : .secondary)
+                Text(AppConfiguration.backgroundRelayEnabled && AppConfiguration.backgroundRelayBaseURL != nil ? "Configured" : "Not configured")
+                Spacer()
+            }
+            Text("Mac Relay does not appear in Nearby Devices. It is used directly via URL from Settings.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
         Section("Manual Pairing") {
             NavigationLink {
                 QRCodePairingView(pairingCode: viewModel.pairingCodeFormatted)

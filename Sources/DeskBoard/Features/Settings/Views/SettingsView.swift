@@ -336,9 +336,22 @@ struct ShareSheet: UIViewControllerRepresentable {
 
 struct ConnectionBanner: View {
     let state: ConnectionState
+    var directRelayReady: Bool = false
 
     var body: some View {
-        if !state.isConnected {
+        if directRelayReady {
+            HStack(spacing: 8) {
+                Image(systemName: "desktopcomputer.and.arrow.down")
+                    .font(.caption.weight(.semibold))
+                Text("Mac Relay Ready (direct mode)")
+                    .font(.caption.weight(.medium))
+                Spacer()
+            }
+            .foregroundStyle(Color.green)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color.green.opacity(0.1))
+        } else if !state.isConnected {
             HStack(spacing: 8) {
                 Image(systemName: state.systemImage).font(.caption.weight(.semibold))
                 Text(state.displayTitle).font(.caption.weight(.medium))

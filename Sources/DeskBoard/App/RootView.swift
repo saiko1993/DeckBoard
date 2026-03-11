@@ -98,7 +98,7 @@ private struct MainTabView: View {
 
             PairingView()
                 .tabItem { Label("Connect", systemImage: "antenna.radiowaves.left.and.right") }
-                .badge(appState.connectionState.isConnected ? nil : "!")
+                .badge(connectTabBadge)
 
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
@@ -111,5 +111,15 @@ private struct MainTabView: View {
         case .receiver: return "antenna.radiowaves.left.and.right"
         case .unset:    return "house.fill"
         }
+    }
+
+    private var connectTabBadge: String? {
+        if appState.connectionState.isConnected {
+            return nil
+        }
+        if appState.isDirectRelayReadyForSender {
+            return nil
+        }
+        return "!"
     }
 }

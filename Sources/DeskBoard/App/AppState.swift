@@ -182,11 +182,23 @@ final class AppState: ObservableObject {
         dashboards.first { $0.id == activeDashboardID }
     }
 
+    var isDirectRelayReadyForSender: Bool {
+        deviceRole == .sender
+            && AppConfiguration.backgroundRelayEnabled
+            && AppConfiguration.backgroundRelayBaseURL != nil
+    }
+
     func send(action: ButtonAction, button: DeskButton) {
-        guard connectionState.isConnected else { return }
+        guard connectionState.isConnected || isDirectRelayReadyForSender else { return }
         if hapticEnabled && button.hapticFeedback {
             HapticManager.shared.medium()
         }
+
+        if !connectionState.isConnected {
+            sendDirectRelayAction(action, button: button)
+            return
+        }
+
         let maxAttempts = max(1, button.config.retryCount + 1)
         let timeoutSeconds = max(3, Int(button.config.timeoutSeconds.rounded()))
         let message = CommandMessage(
@@ -217,6 +229,54 @@ final class AppState: ObservableObject {
         senderButtonStates[button.id] = .running
         peerSession.send(command: message)
         monitorPendingCommandTimeout(message.id)
+    }
+
+    private func sendDirectRelayAction(_ action: ButtonAction, button: DeskButton) {
+        let timeoutSeconds = max(3, Int(button.config.timeoutSeconds.rounded()))
+        let traceID = UUID().uuidString
+        let startedAt = Date()
+        senderButtonStates[button.id] = .running
+
+        Task { @MainActor in
+            let relay = await BackgroundCommandRelayService.shared.forward(
+                action: action,
+                sourceDeviceName: deviceName,
+                reason: "sender_direct_relay_no_peer",
+                traceID: traceID,
+                idempotencyKey: "\(traceID):1",
+                attempt: 1,
+                ttlSeconds: timeoutSeconds
+            )
+
+            let duration = Date().timeIntervalSince(startedAt)
+            if relay.success {
+                senderButtonStates[button.id] = .success
+                let log = ExecutionLog(
+                    buttonID: button.id,
+                    buttonTitle: button.title,
+                    action: action,
+                    result: .success(detail: relay.detail ?? "Executed via Mac relay"),
+                    duration: duration,
+                    targetDevice: "Mac Relay"
+                )
+                ExecutionLogStore.shared.append(log)
+                scheduleSenderButtonStateReset(buttonID: button.id, expected: .success, delayMS: 1400)
+                return
+            }
+
+            let failure = relay.detail ?? "Relay request failed"
+            senderButtonStates[button.id] = .failed(failure)
+            let log = ExecutionLog(
+                buttonID: button.id,
+                buttonTitle: button.title,
+                action: action,
+                result: .failure(error: failure),
+                duration: duration,
+                targetDevice: "Mac Relay"
+            )
+            ExecutionLogStore.shared.append(log)
+            scheduleSenderButtonStateReset(buttonID: button.id, expected: .failed(""), delayMS: 2200)
+        }
     }
 
     private func handleReceivedCommand(_ command: CommandMessage) {
@@ -725,7 +785,7 @@ final class AppState: ObservableObject {
     private func runQuickIntentAction(_ action: ButtonAction) {
         switch deviceRole {
         case .sender:
-            guard connectionState.isConnected else {
+            guard connectionState.isConnected || isDirectRelayReadyForSender else {
                 pendingQuickIntentActions.append(action)
                 if pendingQuickIntentActions.count > 20 {
                     pendingQuickIntentActions.removeFirst(pendingQuickIntentActions.count - 20)
@@ -746,7 +806,7 @@ final class AppState: ObservableObject {
     }
 
     private func flushPendingQuickIntentActionsIfNeeded() {
-        guard deviceRole == .sender, connectionState.isConnected else { return }
+        guard deviceRole == .sender, connectionState.isConnected || isDirectRelayReadyForSender else { return }
         guard !pendingQuickIntentActions.isEmpty else { return }
         let pending = pendingQuickIntentActions
         pendingQuickIntentActions.removeAll()
